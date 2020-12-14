@@ -5,9 +5,9 @@ PROJECT(unbit VERSION 0.1 LANGUAGES CXX)
 #
 # Language standard is C++17, all warnings are enabled.
 #
-IF (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+IF (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
  #
- # Visual Studio
+ # Visual Studio (either native MSVC or clang-cl)
  #
  MESSAGE(STATUS "Using Visual Studio build configuation")
  ADD_DEFINITIONS(/W3 /std:c++17)
