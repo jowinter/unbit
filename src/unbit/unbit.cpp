@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 	    return EXIT_FAILURE;
 	}
 
-	const bitstream bs = std::move(bitstream::load(argv[1u]));
+	const bitstream bs = bitstream::load(argv[1u]);
 	const zynq7& fpga = zynq7::get_by_idcode(bs.idcode());
 
 	for (size_t i = 0u; i < fpga.num_brams(); ++i)

@@ -27,7 +27,7 @@ namespace fpga
 				: sync_offset_(0),
 				  frame_data_offset_(0), frame_data_size_(0),
 				  idcode_(0xFFFFFFFFu),
-				  data_(std::move(load_binary_data(stm)))
+				  data_(load_binary_data(stm))
 			{
 				// Step 1: Synchronize with the start of the configuration stream (by scanning for the 0xAA995566 sync. word.)
 				//
@@ -218,7 +218,7 @@ namespace fpga
 			bitstream bitstream::load(const std::string& filename)
 			{
 				std::ifstream stm(filename, std::ios_base::in | std::ios_base::binary);
-				return std::move(bitstream(stm));
+				return bitstream(stm);
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
@@ -252,7 +252,7 @@ namespace fpga
 						throw std::ios_base::failure("i/o error while reading bitstream data into memory.");
 				}
 
-				return std::move(raw_data);
+				return raw_data;
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
