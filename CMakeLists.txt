@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.13)
 
-PROJECT(unbit)
+PROJECT(unbit VERSION 0.1 LANGUAGES CXX)
 
 #
 # Language standard is C++17, all warnings are enabled.
