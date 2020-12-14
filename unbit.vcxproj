@@ -153,7 +153,7 @@
     <ClCompile Include="src\fpga\xilinx\v7\bram.cpp" />
     <ClCompile Include="src\fpga\xilinx\v7\ramb36e1.cpp" />
     <ClCompile Include="src\fpga\xilinx\v7\zynq7.cpp" />
-    <ClCompile Include="unbit.cpp" />
+    <ClCompile Include="src\unbit\unbit.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\fpga\xilinx\bitstream.hpp" />

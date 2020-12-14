@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="unbit.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
     <ClCompile Include="src\fpga\xilinx\v7\bitstream.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
@@ -34,6 +31,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="src\fpga\xilinx\v7\bitlayout.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\unbit\unbit.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
