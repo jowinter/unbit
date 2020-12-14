@@ -24,6 +24,7 @@ ELSE ()
  MESSAGE(WARNING "Unsupported compiler configuration (expecting trouble); compiler-id: ${CMAKE_CXX_COMPILER_ID}")
 ENDIF ()
 
-INCLUDE_DIRECTORIES("${PROJECT_SOURCE_DIR}/inc")
+# Common include tree for the entire project
+INCLUDE_DIRECTORIES($<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/inc>)
 
 ADD_SUBDIRECTORY(src)
