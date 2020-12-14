@@ -25,6 +25,19 @@ ELSE ()
 ENDIF ()
 
 # Common include tree for the entire project
-INCLUDE_DIRECTORIES($<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/inc>)
+INCLUDE_DIRECTORIES(
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/inc>
+	$<INSTALL_INTERFACE:include/unbit>
+)
 
+# Build projects in subdirectories
 ADD_SUBDIRECTORY(src)
+
+#
+# Install setup
+#
+INSTALL(DIRECTORY inc/ DESTINATION include/unbit FILES_MATCHING PATTERN "*.hpp")
+INSTALL(TARGETS unbit unbit_xilinx
+	RUNTIME DESTINATION bin
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib)

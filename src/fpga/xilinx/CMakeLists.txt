@@ -1,6 +1,7 @@
 #
 # Build the static "libunbit-xilinx7" library (containing all reusable components)
 #
+
 ADD_LIBRARY(unbit_xilinx STATIC
   v7/bitstream.cpp
   v7/bitlayout.cpp
@@ -8,4 +9,5 @@ ADD_LIBRARY(unbit_xilinx STATIC
   v7/ramb36e1.cpp
   v7/zynq7.cpp
   v7/xc7z020.cpp
+  v7/mapper.cpp
 )
