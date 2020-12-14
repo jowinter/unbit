@@ -2401,7 +2401,7 @@ namespace fpga
 			{
 				if (is_parity)
 				{
-					// Map parity bit space	(note that data is swapped at 32-bit word level)				
+					// Map parity bit space	(note that data is swapped at 32-bit word level)
 					return map_via_table(bit_addr, ramb36e1_parity_bits, 4096u);
 				}
 				else

@@ -9,4 +9,3 @@ ADD_LIBRARY(unbit_xilinx STATIC
   v7/zynq7.cpp
   v7/xc7z020.cpp
 )
-

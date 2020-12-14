@@ -18,32 +18,32 @@ using fpga::xilinx::v7::zynq7;
 
 //---------------------------------------------------------------------------------------------------------------------
 static void dump_ram_data(const bitstream& bs, const bram& ram, bool is_parity)
-{   
+{
     const size_t line_width = 32u;
     const std::vector<uint8_t> data = ram.extract(bs, is_parity);
 
     for (size_t line_offset = 0u; line_offset < data.size(); line_offset += line_width)
     {
-        uint8_t line_buf[line_width];
+	uint8_t line_buf[line_width];
 
-        // Fill the line buffer (missing bytes are silently buffer with zero
-        for (size_t i = 0u; i < line_width; ++i)
-        {
-            line_buf[i] = (line_offset + i) < data.size() ? data[line_offset + i] : 0u;
-        }
+	// Fill the line buffer (missing bytes are silently buffer with zero
+	for (size_t i = 0u; i < line_width; ++i)
+	{
+	    line_buf[i] = (line_offset + i) < data.size() ? data[line_offset + i] : 0u;
+	}
 
-        std::cout << (is_parity ? "INITP_" : "INIT_") 
-                  << std::hex << std::setw(2) << std::setfill('0') << (line_offset / line_width)
-                  << ": " << std::dec << (line_width * 8u) << "'h";
+	std::cout << (is_parity ? "INITP_" : "INIT_")
+		  << std::hex << std::setw(2) << std::setfill('0') << (line_offset / line_width)
+		  << ": " << std::dec << (line_width * 8u) << "'h";
 
-        for (size_t i = 0u; i < line_width; ++i)
-        {
-            // Xilinx INIT/INITP strings use a reversed order            
-            std::cout << std::hex << std::setw(2) << std::setfill('0')
-                << static_cast<unsigned>(line_buf[line_width - i - 1u]);
-        }
+	for (size_t i = 0u; i < line_width; ++i)
+	{
+	    // Xilinx INIT/INITP strings use a reversed order
+	    std::cout << std::hex << std::setw(2) << std::setfill('0')
+		<< static_cast<unsigned>(line_buf[line_width - i - 1u]);
+	}
 
-        std::cout << std::endl;
+	std::cout << std::endl;
     }
 }
 
@@ -52,37 +52,37 @@ int main(int argc, char *argv[])
 {
     try
     {
-        if (argc != 2)
-        {
-            std::cerr << "usage: " << argv[0u] << " <bitstream>" << std::endl;
-            return EXIT_FAILURE;
-        }
+	if (argc != 2)
+	{
+	    std::cerr << "usage: " << argv[0u] << " <bitstream>" << std::endl;
+	    return EXIT_FAILURE;
+	}
 
-        const bitstream bs = std::move(bitstream::load(argv[1u]));
-        const zynq7& fpga = zynq7::get_by_idcode(bs.idcode());
+	const bitstream bs = std::move(bitstream::load(argv[1u]));
+	const zynq7& fpga = zynq7::get_by_idcode(bs.idcode());
 
-        for (size_t i = 0u; i < fpga.num_brams(); ++i)
-        {
-            const bram& ram = fpga.bram_at(i);
+	for (size_t i = 0u; i < fpga.num_brams(); ++i)
+	{
+	    const bram& ram = fpga.bram_at(i);
 
-            std::cout << "//" << std::endl
-                << "// " << ram << std::endl
-                << "//" << std::endl;
+	    std::cout << "//" << std::endl
+		<< "// " << ram << std::endl
+		<< "//" << std::endl;
 
-            // Dump the RAM word data
-            dump_ram_data(bs, ram, false);
-            std::cout << std::endl;
+	    // Dump the RAM word data
+	    dump_ram_data(bs, ram, false);
+	    std::cout << std::endl;
 
-            // And the parity data
-            dump_ram_data(bs, ram, true);
-            std::cout << std::endl;
-        }
+	    // And the parity data
+	    dump_ram_data(bs, ram, true);
+	    std::cout << std::endl;
+	}
 
-        return EXIT_SUCCESS;
+	return EXIT_SUCCESS;
     }
     catch (std::exception& e)
     {
-        std::cerr << std::endl << "error: unhandled exception: " << e.what() << std::endl;
-        return EXIT_FAILURE;
+	std::cerr << std::endl << "error: unhandled exception: " << e.what() << std::endl;
+	return EXIT_FAILURE;
     }
 }

@@ -136,24 +136,24 @@ namespace fpga
 
 				/**
 				 * @brief Reads a bit from the frame data area.
-				 * 
+				 *
 				 * @param[in] bit_offset specifies the offset (in bits) relative to the start of the frame data area.
 				 *   (the method internally handles 32-bit word swaps as needed)
-				 * 
+				 *
 				 * @return The read-back value of the bit.
 				 */
 				bool read_frame_data_bit(size_t bit_offset) const;
 
 				/**
 				 * @brief Writes a bit in the frame data area.
-				 * 
+				 *
 				 * @param[bit] bit_offset specifies the offset (in bits) relative to the start of the frame data area.
 				 *   (the method internally handles 32-bit word swaps as needed)
 				 *
 				 * @param[in] value the value to write at the given location.
 				 */
 				void write_frame_data_bit(size_t bit_offset, bool value);
-				
+
 				/**
 				 * @brief Gets the device IDCODE that was parsed from the bitstream's configuration packets.
 				 */
@@ -184,7 +184,7 @@ namespace fpga
 				size_t map_frame_data_offset(size_t offset) const;
 
 			private:
-				// Non-copyable				
+				// Non-copyable
 				bitstream(const bitstream& other) = delete;
 				bitstream& operator=(const bitstream& other) = delete;
 			};

@@ -10,7 +10,7 @@
 namespace fpga
 {
 	namespace xilinx
-	{		
+	{
 		namespace v7
 		{
 			//--------------------------------------------------------------------------------------------------------------------
@@ -48,7 +48,7 @@ namespace fpga
 				/**
 				 * @brief Bit-offset of the first bit of the BRAM in the configuration frame data
 				 *   found in the bitstream.
-				 * 
+				 *
 				 * @note The bit-offset is measured relative to the start of the start of the
 				 *   configuration frame data are in the bitstream.
 				 */
@@ -57,11 +57,11 @@ namespace fpga
 			protected:
 				/**
 				 * @brief Constructs a block RAM description.
-				 * 
+				 *
 				 * @param[in] x specifies the X coordinate of the RAM tile.
 				 * @param[in] y specifies the Y coordinate of the RAM tile.
 				 * @param[in] data_bits specifies the number of data bits per RAM word.
-				 * @param[in] parity_bits specifies the number of parity bits per RAM word.				 
+				 * @param[in] parity_bits specifies the number of parity bits per RAM word.
 				 * @param[in] bitstream_offset specifies the offset (in bits) between the start of the
 				 *   configuration frame data in the bitstream and the first bit related to the block RAM.
 				 */
@@ -81,11 +81,11 @@ namespace fpga
 
 				/**
 				 * @brief Maps a RAM data (or parity) bit location to the bitstream.
-				 * 
+				 *
 				 * @param[in] bit_addr is the address of the (data or parity) bit to be mapped.
-				 * 
+				 *
 				 * @param[in] is_parity indicates whether a data bit (false) or a parity bit (true) is to be mapped.
-				 * 
+				 *
 				 * @return The bitstream offset of the given RAM bit. The returned offset is a bit-address relative to the
 				 *  start of the configuration frame of the bitstream. (An address relative to the RAM can be computed by
 				 *  subtracting the bitstream offset of this RAM itself).
@@ -94,17 +94,17 @@ namespace fpga
 
 				/**
 				 * @brief Extracts data or parity bits of this block RAM from a bitstream.
-				 * 
+				 *
 				 * @param[in]  bits specifies the source bitstream.
 				 * @param[in]  extract_parity indicates whether data (false) or parity (true) data shall be extracted.
-				 * 
+				 *
 				 * @return A fresh byte vector containing the extracted data bits.
 				 */
 				std::vector<uint8_t> extract(const bitstream& bits, bool extract_parity) const;
 
 				/**
 				 * @brief Injects data or parity bits for this block RAM into a bitstream.
-				 * 
+				 *
 				 * @param[in,out] bits specifies the target bitstream.
 				 * @param[in] inject_parity indicates whether data (false) or parity (true) data shall be injected.
 				 * @param[in] data specifies the byte vector to be injected.
@@ -163,10 +163,10 @@ namespace fpga
 			protected:
 				/**
 				 * @brief Maps a bit address to a bitstream offset (using a provided mapping table).
-				 * 
+				 *
 				 * @param[in] bit_addr is the bit address to be mapped.
 				 * @param[in] map_table is the mapping table (the bit address is used as index).
-				 * @param[in] table_size is the number of entries in the mapping table.				 
+				 * @param[in] table_size is the number of entries in the mapping table.
 				 * @return The mapped bitstream offset.
 				 */
 				size_t map_via_table(size_t bit_addr, const uint32_t* map_table, size_t table_size) const;
@@ -179,13 +179,13 @@ namespace fpga
 
 			/**
 			 * @brief Prints the type and location of a RAM.
-			 * 
+			 *
 			 * @param[in,out] stm is the output stream to print to.
 			 * @param[in] ram is the RAM to be printed.
 			 * @return A reference to the output stream.
 			 */
 			std::ostream& operator<< (std::ostream& stm, const bram& ram);
-			
+
 			//--------------------------------------------------------------------------------------------------------------------
 			/**
 			 * @brief Description of a RAMB36E1 block RAM tile.

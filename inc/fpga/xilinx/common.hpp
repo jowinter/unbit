@@ -19,9 +19,9 @@
 namespace fpga
 {
 	namespace xilinx
-	{		
+	{
 		/**
-		 * @brief Common infrastructure for Xilinx Series-7 FPGAs		 
+		 * @brief Common infrastructure for Xilinx Series-7 FPGAs
 		 */
 		namespace v7
 		{

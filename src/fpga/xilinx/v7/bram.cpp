@@ -34,7 +34,7 @@ namespace fpga
 				if (bit_addr >= table_size)
 					throw std::out_of_range("bit address to be mapped is out of bounds");
 
-				return bitstream_offset_ + map_table[bit_addr];				
+				return bitstream_offset_ + map_table[bit_addr];
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
@@ -43,7 +43,7 @@ namespace fpga
 				// Determine the length (in bits)
 				const size_t bit_length = (extract_parity ? parity_bits_ : data_bits_) * num_words_;
 				const size_t byte_length = (bit_length + 7u) / 8u;
-				
+
 				// Prepare the result array
 				std::vector<uint8_t> extracted(byte_length);
 
@@ -51,10 +51,10 @@ namespace fpga
 				for (size_t i = 0u; i < bit_length; ++i)
 				{
 					const size_t src_bit = map_to_bitstream(i, extract_parity);
-					
+
 					// Extract the source value and update the extracted byte array
-					if (bits.read_frame_data_bit(src_bit))					
-						extracted[i / 8u] |= 1u << (i % 8u);					
+					if (bits.read_frame_data_bit(src_bit))
+						extracted[i / 8u] |= 1u << (i % 8u);
 				}
 
 				// Done
@@ -70,7 +70,7 @@ namespace fpga
 
 				if (data.size() != byte_length)
 					throw std::invalid_argument("size of data to be injected does not match block ram size");
-				
+
 				// Extract data (bit-wise)
 				for (size_t i = 0u; i < bit_length; ++i)
 				{

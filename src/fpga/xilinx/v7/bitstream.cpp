@@ -51,7 +51,7 @@ namespace fpga
 				{
 					auto cfg_pos = config_packets_begin();
 					auto cfg_end = config_packets_end();
-					
+
 					// Register number (always set by type 1 packets, used by type 2 packets)
 					uint32_t reg = 0u;
 
@@ -72,11 +72,11 @@ namespace fpga
 						{
 							// Type 1 packet:
 							//
-							//  31 29 28 27 26       18 17  13 12  11 10                  0 
+							//  31 29 28 27 26       18 17  13 12  11 10                  0
 							// +-----+-----+-----------+------+------+---------------------+
 							// | 001 |  op | 000000000 | reg  |  00  | word_count          |
-							// +-----+-----+-----------+------+------+---------------------+							
-							// 
+							// +-----+-----+-----------+------+------+---------------------+
+							//
 							reg = (hdr >> 13u) & 0x1Fu;
 							word_count = hdr & 0x3FFu;
 						}
@@ -84,10 +84,10 @@ namespace fpga
 						{
 							// Type 2 packet:
 							//
-							//  31 29 28 27 26                                            0 
+							//  31 29 28 27 26                                            0
 							// +-----+-----+-----------------------------------------------+
 							// | 010 |  op | word_count                                    |
-							// +-----+-----+-----------------------------------------------+							
+							// +-----+-----+-----------------------------------------------+
 							//
 							word_count = hdr & 0x07FFFFFFu;
 						}
@@ -119,7 +119,7 @@ namespace fpga
 							else
 							{
 								// Other command
-							}							
+							}
 						}
 						else if (op == 0b10u && reg == 0b01100u && word_count > 0u)
 						{
@@ -159,13 +159,13 @@ namespace fpga
 				  frame_data_offset_(other.frame_data_offset_), frame_data_size_(other.frame_data_size_),
 				  idcode_(other.idcode_),
 				  data_(std::move(other.data_))
-			{				
+			{
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
 			bitstream::~bitstream() noexcept
 			{
-			}			
+			}
 
 			//--------------------------------------------------------------------------------------------------------------------
 			bitstream::const_byte_iterator bitstream::config_packets_begin() const
@@ -218,7 +218,7 @@ namespace fpga
 			bitstream bitstream::load(const std::string& filename)
 			{
 				std::ifstream stm(filename, std::ios_base::in | std::ios_base::binary);
-				return std::move(bitstream(stm));				
+				return std::move(bitstream(stm));
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
@@ -234,7 +234,7 @@ namespace fpga
 
 					// Rewind to the initial file position (this allows to user to manually skip extra bytes at the start of f).
 					f.seekg(start, std::ios_base::beg);
-					
+
 					if (f.fail())
 						throw std::ios_base::failure("i/o error while determining size of bitstream.");
 

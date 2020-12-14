@@ -42,7 +42,7 @@ namespace fpga
 			{
 				{ &xc7z020::match, &xc7z020::get } // XC7Z020
 			};
-			
+
 			//--------------------------------------------------------------------------------------------------------------------
 			zynq7::zynq7(const std::string& name, uint32_t idcode, size_t num_brams)
 				:  name_(name), idcode_(idcode), num_brams_(num_brams)
