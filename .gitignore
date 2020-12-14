@@ -341,3 +341,4 @@ healthchecksdb
 
 # Temporary build directory
 _build/
+/out/build
