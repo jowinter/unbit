@@ -4,12 +4,15 @@
  */
 #include "fpga/xilinx/mapper.hpp"
 #include "fpga/xilinx/bram.hpp"
+#include "fpga/xilinx/zynq7.hpp"
 #include "fpga/xilinx/mmi.hpp"
 
 #include "rapidxml/rapidxml.hpp"
 
 #include <iostream>
 #include <fstream>
+#include <cstdio>
+#include <cerrno>
 
 namespace fpga
 {
@@ -62,11 +65,18 @@ namespace fpga
 
 			private:
 				static xml_data_vector load_xml_text(const std::string& filename);
-				static std::string get_attribute(xml_node* node, const char* name);
+				static std::optional<std::string> get_attribute(xml_node* node, const char* name);				
+				static std::optional<int64_t> get_attribute_i64(xml_node* node, const char* name);
+
+				static std::string get_required_attribute(xml_node* node, const char* name);
+				static int64_t get_required_attribute_i64(xml_node* node, const char* name);
 
 				void parse_rams(mmi_instance_filter_t instance_filter);
 				void parse_mem_array(const std::string& inst_path, xml_node* xmemarray);
 				void parse_processor(const std::string& inst_path, xml_node* xprocessor);
+
+				std::vector<std::tuple<unsigned, bool>> parse_bitlayout(const std::string& bitlayout, const bram& ram);
+				const bram& resolve_bram(const std::string& type, const std::string& loc);
 
 			private:
 				// Non-copyable
@@ -95,8 +105,8 @@ namespace fpga
 
 					for (auto xoption = xconfig->first_node("Option"); xoption; xoption = xoption->next_sibling("Option"))
 					{
-						auto name = get_attribute(xoption, "Name");
-						auto value = get_attribute(xoption, "Val");
+						auto name = get_attribute(xoption, "Name").value();
+						auto value = get_attribute(xoption, "Val").value();
 
 						// Process the options
 						if (name == "Part")
@@ -159,7 +169,7 @@ namespace fpga
 			}
 
 			//-------------------------------------------------------------------------------------------------------------------
-			std::string mmi_parser_imp::get_attribute(xml_node* node, const char* name)
+			std::optional<std::string> mmi_parser_imp::get_attribute(xml_node* node, const char* name)
 			{
 				if (node)
 				{
@@ -176,6 +186,62 @@ namespace fpga
 			}
 
 			//-------------------------------------------------------------------------------------------------------------------
+			std::optional<int64_t> mmi_parser_imp::get_attribute_i64(xml_node* node, const char* name)
+			{
+				if (auto str_value = get_attribute(node, name))
+				{
+					// Parse the value
+					char* endp = nullptr;
+					errno = 0;
+					int64_t result = std::strtoll(str_value.value().c_str(), &endp, 0);
+					if (errno != 0 || *endp != '\0')
+					{
+						std::string msg = "malformed input MMI file (failed to parse integer attribute '";
+						msg += name;
+						msg += "')";
+						throw std::invalid_argument(msg);
+					}
+
+					return result;
+				}
+
+				// No value
+				return {};
+			}
+
+			//-------------------------------------------------------------------------------------------------------------------
+			std::string mmi_parser_imp::get_required_attribute(xml_node* node, const char* name)
+			{
+				if (auto str_value = get_attribute(node, name))
+				{
+					return str_value.value();
+				}
+				else
+				{
+					std::string msg = "malformed input MMI file (missing string attribute '";
+					msg += name;
+					msg += "')";
+					throw std::invalid_argument(msg);
+				}
+			}
+
+			//-------------------------------------------------------------------------------------------------------------------
+			int64_t mmi_parser_imp::get_required_attribute_i64(xml_node* node, const char* name)
+			{
+				if (auto i64_value = get_attribute_i64(node, name))
+				{
+					return i64_value.value();
+				}
+				else
+				{
+					std::string msg = "malformed input MMI file (missing integer attribute '";
+					msg += name;
+					msg += "')";
+					throw std::invalid_argument(msg);
+				}
+			}
+
+			//-------------------------------------------------------------------------------------------------------------------
 			void mmi_parser_imp::parse_rams(mmi_instance_filter_t instance_filter)
 			{
 				const std::string mem_array_tag = "MemoryArray";
@@ -188,28 +254,32 @@ namespace fpga
 				// And process
 				for (auto xnode = xroot->first_node(); xnode; xnode = xnode->next_sibling())
 				{
-					// Check the instance path
-					auto inst_path = get_attribute(xnode, "InstPath");
-					if (!inst_path.empty() && instance_filter(inst_path))
-					{
-						// Non-empty instance path, filter accepted
-						auto tag_name = xnode->name();
+					// Non-empty instance path, filter accepted
+					auto tag_name = xnode->name();
 
-						if (mem_array_tag == tag_name)
+					if (mem_array_tag == tag_name)
+					{
+						// MemoryArray tag describing an XPM memory macro
+						auto inst_path = get_required_attribute(xnode, "InstPath");
+						if (instance_filter(inst_path))
 						{
-							// MemoryArray tag describing an XPM memory macro
 							parse_mem_array(inst_path, xnode);
 						}
-						else if (processor_tag == tag_name)
+					}
+					else if (processor_tag == tag_name)
+					{
+						// Processor tag describing an embedded processor address space.
+						auto inst_path = get_required_attribute(xnode, "InstPath");
+						if (instance_filter(inst_path))
 						{
-							// Processor tag describing an embedded processor address space.
 							parse_processor(inst_path, xnode);
 						}
-						else
-						{
-							// Other memory tag (cuurrenly ignored - TBD: throw?)
-						}
 					}
+					else
+					{
+						// Other memory tag (cuurrenly ignored - TBD: throw?)
+					}
+
 				}
 			}
 
@@ -221,22 +291,180 @@ namespace fpga
 				if (!xlayout)
 					throw std::invalid_argument("malformed input MMI file (failed to parse <MemoryArray> without <MemoryLayout>)");
 
-				// Phase 1: Scan over the BRAM tags to determine the memory word size (TBD: we only look at PortA) and collect placement data
-				size_t mem_word_size = 0u;
-				{
-					for (auto xbram = xlayout->first_node("BRAM"); xbram; xbram = xlayout->next_sibling("BRAM"))
-					{
-						auto xdatawidth_a = xbram->first_node("DataWidth_PortA");
-						if (!xdatawidth_a)
-							throw std::invalid_argument("malformed input MMI file (failed to parse <MemoryLayout> without <DataWidth_PortA>)");
+				// Phase 1: Determine the core memory size (from the CoreMemory_Width attribute of the memory layout)
+				int64_t mem_word_size = get_required_attribute_i64(xlayout, "CoreMemory_Width");
+				if (mem_word_size < 1 || mem_word_size > std::numeric_limits<unsigned>::max())
+					throw std::invalid_argument("malformed input MMI file (core memory width of <MemoryLayout> exceeds implementation limits)");
 
-						auto msb = get_attribute(xdatawidth_a, "MSB");
-						auto lsb = get_attribute(xdatawidth_a, "LSB");
-						std::cout << msb << "..." << lsb << std::endl;
+				mapper m(static_cast<size_t>(mem_word_size));
+
+				// Phase 2: Record the BRAM mappings
+				for (auto xbram = xlayout->first_node("BRAM"); xbram; xbram = xbram->next_sibling("BRAM"))
+				{
+					// Extract the BRAM type and location
+					auto& ram = resolve_bram(get_required_attribute(xbram, "MemType"), get_required_attribute(xbram, "Placement"));
+
+					// Extract the MSB/LSB slice from BRAM mapping
+					auto xdatawidth_a = xbram->first_node("DataWidth_PortA");
+					if (!xdatawidth_a)
+						throw std::invalid_argument("malformed input MMI file (failed to parse <BRAM> without <DataWidth_PortA>)");
+
+					auto msb = get_required_attribute_i64(xdatawidth_a, "MSB");
+					auto lsb = get_required_attribute_i64(xdatawidth_a, "LSB");
+					if (msb < 0 || lsb < 0 || msb >= (std::numeric_limits<int32_t>::max() - 1u) || lsb >= (std::numeric_limits<int32_t>::max() - 1u))
+						throw std::invalid_argument("malformed input MMI file (MSB and/or LSB of <DataWidth_PortA> exceed implementation limits)");
+
+					auto slice_width = std::abs(msb - lsb) + 1u;
+
+					// Extract the address slice (address is given in RAM words)
+					auto xaddrrange_a = xbram->first_node("AddressRange_PortA");
+					if (!xaddrrange_a)
+						throw std::invalid_argument("malformed input MMI file (failed to parse <BRAM> without <AddressRange_PortA>)");
+
+					auto start_addr = get_required_attribute_i64(xaddrrange_a, "Begin");
+					auto end_addr = get_required_attribute_i64(xaddrrange_a, "End");
+					if (start_addr < 0 || end_addr < 0 || start_addr >= std::numeric_limits<int32_t>::max() ||
+						end_addr >= std::numeric_limits<int32_t>::max())
+						throw std::invalid_argument("malformed input MMI file (MSB and/or LSB of <DataWidth_PortA> exceed implementation limits)");
+
+					if (start_addr > end_addr)
+						throw std::invalid_argument("malformed input MMI file (start address of <AddressRange_PortA> must be less or equal than end address)");			
+
+					// Parse the bitlayout string
+					auto xbitlayout = xbram->first_node("BitLayout_PortA");
+					if (!xbitlayout)
+						throw std::invalid_argument("malformed input MMI file (failed to parse <BRAM> without <BitLayout_PortA>)");
+
+					auto bitlayout = parse_bitlayout(get_required_attribute(xbitlayout, "pattern"), ram);
+
+					// And now map the bitlayout string
+					// TBD: RAM stride etc.
+					std::cerr << "UNIMPLEMENTED: MAP [" << msb << ":" << lsb << "] " << slice_width << start_addr << ".." << end_addr << " " << ram << std::endl;
+				}
+			}
+
+			//-------------------------------------------------------------------------------------------------------------------
+			std::vector<std::tuple<unsigned, bool>> mmi_parser_imp::parse_bitlayout(const std::string& bitlayout, const bram& ram)
+			{
+				std::vector<std::tuple<unsigned, bool>> layout;
+
+				unsigned total_data_bits = 0u;
+				unsigned total_parity_bits = 0u;
+				unsigned field_width = 0u;
+
+				bool type = false;
+
+				for (auto bp = bitlayout.begin(), be = bitlayout.end(); bp != be; ++bp)
+				{
+					// Consume the next character of the bit-layout
+					auto type = *bp;
+
+					if (type == 'p')
+					{
+						// Bits go to the parity bit
+						if (field_width > 0u)
+							throw std::invalid_argument("malformed input MMI file (missing separator in parity bit specification in <BitLayout_A> pattern)");
+
+						type = true;
+					}
+					else if (type == 'd')
+					{
+						// Bits go to the data bits
+						if (field_width > 0u)
+							throw std::invalid_argument("malformed input MMI file (missing separator in data bit specification in <BitLayout_A> pattern)");
+
+						type = false;
+					}
+					else if (type == '_')
+					{
+						// Separator (flush the current pattern)
+						if (field_width > 0u)
+						{
+							// Assign some bits
+							layout.emplace_back(std::make_tuple(field_width, type));
+
+							// Update the bit stats
+							if (type)
+							{
+								// Partiy bit
+								total_parity_bits += 1u;
+							}
+							else
+							{
+								// Data bit
+								total_data_bits += 1u;
+							}
+
+							field_width = 0u;
+						}
+					}
+					else if ('0' <= type && type <= '9')
+					{
+						// Next digit of width
+						unsigned digit = static_cast<unsigned>(type - '0');
+
+						if (field_width > (std::numeric_limits<unsigned>::max() / 10u))
+							throw std::invalid_argument("malformed input MMI file (bit-width in <BitLayout_A> pattern exceeds implementation limits)");
+
+						field_width *= 10u;
+
+						if ((std::numeric_limits<unsigned>::max() - field_width) < digit)
+							throw std::invalid_argument("malformed input MMI file (bit-width in <BitLayout_A> pattern exceeds implementation limits)");
+						
+						field_width += digit;
+					}
+					else
+					{
+						// Invalid bit layout specification
+						throw std::invalid_argument("malformed input MMI file (unrecognized characters in <BitLayout_A> pattern)");
 					}
 				}
 
-				std::cerr << "UNIMPLEMENTED: parser MemoryArray tag" << std::endl;
+				// There should be one final pattern
+				if (field_width > 0u)
+				{
+					// Assign some bits
+					layout.emplace_back(std::make_tuple(field_width, type));
+				}
+
+				// Final size check
+				if (total_data_bits > ram.data_bits())
+					throw std::invalid_argument("malformed input MMI file (number of data bits mapped in <BitLayout_A> pattern exceed BRAM limits)");
+
+				if (total_parity_bits > ram.parity_bits())
+					throw std::invalid_argument("malformed input MMI file (number of data bits mapped in <BitLayout_A> pattern exceed BRAM limits)");
+
+				// We typically expect some extra bits (the sum of all field_widths can _at most_ be the word size; typically it will
+				// be less for wide RAMs).
+				return layout;
+			}
+
+			//-------------------------------------------------------------------------------------------------------------------
+			const bram& mmi_parser_imp::resolve_bram(const std::string& type, const std::string& loc)
+			{
+				// TBD: We currently only support RAMB36E1 (RAMB36) and to some degree RAMB18 (1/2 RAMB36)
+				if (type != "RAMB36" && type != "RAMB18")
+					throw std::invalid_argument("malformed input MMI file (implementation currently only supports RAMB36)");
+
+				// Parse the location string into X and Y coordinate.
+				//
+				// We have a fixed "X%uY%u" format. The sscanf() family of functions provides the easiest access
+				unsigned loc_x = 0;
+				unsigned loc_y = 0;
+
+				
+#if _MSC_VER > 0
+				// We are on a MSVC compiler. Use sscanf_s() to silence CRT deprecation warnings.
+				if (2 != ::sscanf_s(loc.c_str(), "X%uY%u", &loc_x, &loc_y))
+					throw std::invalid_argument("malformed input MMI file (unparsable BRAM X/Y coordinates)");
+#else
+				// Not an MSVC compiler. Resort to plain old C sscanf()
+				if (2 != std::sscanf(loc.c_str(), "X%uY%u", &loc_x, &loc_y))
+					throw std::invalid_argument("malformed input MMI file (unparsable BRAM X/Y coordinates)");
+#endif
+
+				// Now resolve the BRAM
+				return fpga->bram_by_loc(loc_x, loc_y);
 			}
 
 			//-------------------------------------------------------------------------------------------------------------------
