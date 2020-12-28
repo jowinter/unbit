@@ -402,7 +402,7 @@ namespace fpga
 				unsigned total_parity_bits = 0u;
 				unsigned field_width = 0u;
 
-				bool type = false;
+				bool is_parity = false;
 
 				for (auto bp = bitlayout.begin(), be = bitlayout.end(); bp != be; ++bp)
 				{
@@ -415,7 +415,7 @@ namespace fpga
 						if (field_width > 0u)
 							throw std::invalid_argument("malformed input MMI file (missing separator in parity bit specification in <BitLayout_A> pattern)");
 
-						type = true;
+						is_parity = true;
 					}
 					else if (type == 'd')
 					{
@@ -423,7 +423,7 @@ namespace fpga
 						if (field_width > 0u)
 							throw std::invalid_argument("malformed input MMI file (missing separator in data bit specification in <BitLayout_A> pattern)");
 
-						type = false;
+						is_parity = false;
 					}
 					else if (type == '_')
 					{
@@ -431,7 +431,7 @@ namespace fpga
 						if (field_width > 0u)
 						{
 							// Assign some bits
-							layout.emplace_back(std::make_tuple(field_width, type));
+							layout.emplace_back(std::make_tuple(field_width, is_parity));
 
 							// Update the bit stats
 							if (type)
@@ -474,7 +474,7 @@ namespace fpga
 				if (field_width > 0u)
 				{
 					// Assign some bits
-					layout.emplace_back(std::make_tuple(field_width, type));
+					layout.emplace_back(std::make_tuple(field_width, is_parity));
 				}
 
 				// Final size check
