@@ -339,7 +339,27 @@ namespace fpga
 
 					// And now map the bitlayout string
 					// TBD: RAM stride etc.
-					std::cerr << "UNIMPLEMENTED: MAP [" << msb << ":" << lsb << "] " << slice_width << start_addr << ".." << end_addr << " " << ram << std::endl;
+					//
+					// For now we assume:
+					//  --> Stride is equal to the mapping slice width (as per bit-layout)
+					//  --> Bit-offset in RAM is zero
+					//  --> MSB >= LSB (TBD: this should be relaxed in future)
+					if (lsb > msb)
+						throw std::invalid_argument("TODO: msb < lsb is not yet implemented");
+
+					// Map the slice as given by the bit-layout					
+					for (auto map_slice : bitlayout)
+					{
+						auto map_width = std::get<0>(map_slice);
+						auto map_parity = std::get<1>(map_slice);						
+						auto map_msb = static_cast<size_t>(msb);
+						auto map_lsb = static_cast<size_t>(msb - map_width) + 1u;
+
+						m.add(start_addr, end_addr, map_lsb, map_msb, ram, 0u, map_width, map_parity);
+
+						// FIXME: Handle reversed byte order ... (do Xilinx tools generate such files?)
+						msb -= map_width;
+					}
 				}
 			}
 
