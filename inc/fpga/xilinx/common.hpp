@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <cstddef>
 
+#include <array>
 #include <functional>
 #include <optional>
 #include <memory>
@@ -52,6 +53,13 @@ namespace fpga
 			 */
 			template<typename T>
 			using optional_const_ref = std::optional<std::reference_wrapper<const T>>;
+
+			// Forward declarations
+			class bitstream;
+			class bram;
+			class mapper;
+			class ramb36e1;
+			class zynq7;
 		}
 	}
 }
