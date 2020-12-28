@@ -75,7 +75,7 @@ namespace fpga
 				void parse_mem_array(const std::string& inst_path, xml_node* xmemarray);
 				void parse_mem_array_dataport(mapper& m, const bram& ram,
 					xml_node* xdatawidth, xml_node* xaddrrange, xml_node* xbitlayout,
-					int64_t mem_word_size);
+					int64_t mem_word_size, unsigned& data_base_offset, unsigned& parity_base_offset);
 				void parse_processor(const std::string& inst_path, xml_node* xprocessor);
 
 				std::vector<std::tuple<unsigned, bool>> parse_bitlayout(const std::string& bitlayout, const bram& ram);
@@ -289,7 +289,7 @@ namespace fpga
 			//-------------------------------------------------------------------------------------------------------------------
 			void mmi_parser_imp::parse_mem_array_dataport(mapper& m, const bram& ram,
 				xml_node* xdatawidth, xml_node* xaddrrange, xml_node* xbitlayout,
-				int64_t mem_word_size)			
+				int64_t mem_word_size, unsigned& data_base_offset, unsigned& parity_base_offset)
 			{				
 				// Extract the MSB/LSB slice from BRAM mapping				
 				if (!xdatawidth)
@@ -363,16 +363,19 @@ namespace fpga
 						if (map_parity)
 						{
 							parity_offset -= map_width;
-							m.add(start_addr, end_addr, map_lsb, map_msb, ram, parity_offset, parity_stride, map_parity);
+							m.add(start_addr, end_addr, map_lsb, map_msb, ram, parity_offset + parity_base_offset, parity_stride, map_parity);
 						}
 						else
 						{
 							data_offset -= map_width;
-							m.add(start_addr, end_addr, map_lsb, map_msb, ram, data_offset, data_stride, map_parity);							
+							m.add(start_addr, end_addr, map_lsb, map_msb, ram, data_offset + data_base_offset, data_stride, map_parity);
 						}
 						
 						msb -= map_width;
 					}
+
+					data_base_offset += static_cast<unsigned>(end_addr - start_addr + 1u) * data_stride;
+					parity_base_offset += static_cast<unsigned>(end_addr - start_addr + 1u) * parity_stride;
 				}
 			}
 
@@ -400,12 +403,15 @@ namespace fpga
 					// Extract the BRAM type and location
 					auto& ram = resolve_bram(get_required_attribute(xbram, "MemType"), get_required_attribute(xbram, "Placement"));
 
+					unsigned data_base_offset = 0u;
+					unsigned parity_base_offset = 0u;
+
 					// Process port A
 					{
 						auto xdatawidth_a = xbram->first_node("DataWidth_PortA");
 						auto xaddrrange_a = xbram->first_node("AddressRange_PortA");
 						auto xbitlayout_a = xbram->first_node("BitLayout_PortA");
-						parse_mem_array_dataport(m, ram, xdatawidth_a, xaddrrange_a, xbitlayout_a, mem_word_size);
+						parse_mem_array_dataport(m, ram, xdatawidth_a, xaddrrange_a, xbitlayout_a, mem_word_size, data_base_offset, parity_base_offset);
 					}
 
 					// Process port B
@@ -413,7 +419,7 @@ namespace fpga
 						auto xdatawidth_b = xbram->first_node("DataWidth_PortB");
 						auto xaddrrange_b = xbram->first_node("AddressRange_PortB");
 						auto xbitlayout_b = xbram->first_node("BitLayout_PortB");
-						parse_mem_array_dataport(m, ram, xdatawidth_b, xaddrrange_b, xbitlayout_b, mem_word_size);
+						parse_mem_array_dataport(m, ram, xdatawidth_b, xaddrrange_b, xbitlayout_b, mem_word_size, data_base_offset, parity_base_offset);
 					}
 				}
 
