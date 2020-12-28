@@ -73,6 +73,9 @@ namespace fpga
 
 				void parse_rams(mmi_instance_filter_t instance_filter);
 				void parse_mem_array(const std::string& inst_path, xml_node* xmemarray);
+				void parse_mem_array_dataport(mapper& m, const bram& ram,
+					xml_node* xdatawidth, xml_node* xaddrrange, xml_node* xbitlayout,
+					int64_t mem_word_size);
 				void parse_processor(const std::string& inst_path, xml_node* xprocessor);
 
 				std::vector<std::tuple<unsigned, bool>> parse_bitlayout(const std::string& bitlayout, const bram& ram);
@@ -284,54 +287,37 @@ namespace fpga
 			}
 
 			//-------------------------------------------------------------------------------------------------------------------
-			void mmi_parser_imp::parse_mem_array(const std::string& inst_path, xml_node* xmemarray)
-			{
-				// All specimen seen so far have exactly one MemoryLayout as child of their MemArray
-				auto xlayout = xmemarray->first_node("MemoryLayout");
-				if (!xlayout)
-					throw std::invalid_argument("malformed input MMI file (failed to parse <MemoryArray> without <MemoryLayout>)");
+			void mmi_parser_imp::parse_mem_array_dataport(mapper& m, const bram& ram,
+				xml_node* xdatawidth, xml_node* xaddrrange, xml_node* xbitlayout,
+				int64_t mem_word_size)			
+			{				
+				// Extract the MSB/LSB slice from BRAM mapping				
+				if (!xdatawidth)
+					throw std::invalid_argument("malformed input MMI file (failed to parse <BRAM> without <DataWidth_PortA>)");
 
-				// Phase 1: Determine the core memory size (from the CoreMemory_Width attribute of the memory layout)
-				int64_t mem_word_size = get_required_attribute_i64(xlayout, "CoreMemory_Width");
-				if (mem_word_size < 1 || mem_word_size > std::numeric_limits<unsigned>::max())
-					throw std::invalid_argument("malformed input MMI file (core memory width of <MemoryLayout> exceeds implementation limits)");
+				auto msb = get_required_attribute_i64(xdatawidth, "MSB");
+				auto lsb = get_required_attribute_i64(xdatawidth, "LSB");
+				if (msb < 0 || lsb < 0 || msb >= (std::numeric_limits<int32_t>::max() - 1u) || lsb >= (std::numeric_limits<int32_t>::max() - 1u))
+					throw std::invalid_argument("malformed input MMI file (MSB and/or LSB of <DataWidth_PortA> exceed implementation limits)");
 
-				mapper m(static_cast<size_t>(mem_word_size));
+				auto slice_width = std::abs(msb - lsb) + 1u;
 
-				// Phase 2: Record the BRAM mappings
-				for (auto xbram = xlayout->first_node("BRAM"); xbram; xbram = xbram->next_sibling("BRAM"))
+				if (slice_width > 0u)
 				{
-					// Extract the BRAM type and location
-					auto& ram = resolve_bram(get_required_attribute(xbram, "MemType"), get_required_attribute(xbram, "Placement"));
-
-					// Extract the MSB/LSB slice from BRAM mapping
-					auto xdatawidth_a = xbram->first_node("DataWidth_PortA");
-					if (!xdatawidth_a)
-						throw std::invalid_argument("malformed input MMI file (failed to parse <BRAM> without <DataWidth_PortA>)");
-
-					auto msb = get_required_attribute_i64(xdatawidth_a, "MSB");
-					auto lsb = get_required_attribute_i64(xdatawidth_a, "LSB");
-					if (msb < 0 || lsb < 0 || msb >= (std::numeric_limits<int32_t>::max() - 1u) || lsb >= (std::numeric_limits<int32_t>::max() - 1u))
-						throw std::invalid_argument("malformed input MMI file (MSB and/or LSB of <DataWidth_PortA> exceed implementation limits)");
-
-					auto slice_width = std::abs(msb - lsb) + 1u;
-
 					// Extract the address slice (address is given in RAM words)
-					auto xaddrrange_a = xbram->first_node("AddressRange_PortA");
-					if (!xaddrrange_a)
+					if (!xaddrrange)
 						throw std::invalid_argument("malformed input MMI file (failed to parse <BRAM> without <AddressRange_PortA>)");
 
-					auto start_addr = get_required_attribute_i64(xaddrrange_a, "Begin");
-					auto end_addr = get_required_attribute_i64(xaddrrange_a, "End");
+					auto start_addr = get_required_attribute_i64(xaddrrange, "Begin");
+					auto end_addr = get_required_attribute_i64(xaddrrange, "End");
 					if (start_addr < 0 || end_addr < 0 || start_addr >= std::numeric_limits<int32_t>::max() ||
 						end_addr >= std::numeric_limits<int32_t>::max())
 						throw std::invalid_argument("malformed input MMI file (MSB and/or LSB of <DataWidth_PortA> exceed implementation limits)");
 
 					if (start_addr > end_addr)
-						throw std::invalid_argument("malformed input MMI file (start address of <AddressRange_PortA> must be less or equal than end address)");			
+						throw std::invalid_argument("malformed input MMI file (start address of <AddressRange_PortA> must be less or equal than end address)");
 
 					// Parse the bitlayout string
-					auto xbitlayout = xbram->first_node("BitLayout_PortA");
 					if (!xbitlayout)
 						throw std::invalid_argument("malformed input MMI file (failed to parse <BRAM> without <BitLayout_PortA>)");
 
@@ -351,7 +337,7 @@ namespace fpga
 					for (auto map_slice : bitlayout)
 					{
 						auto map_width = std::get<0>(map_slice);
-						auto map_parity = std::get<1>(map_slice);						
+						auto map_parity = std::get<1>(map_slice);
 						auto map_msb = static_cast<unsigned>(msb);
 						auto map_lsb = static_cast<unsigned>(msb - map_width) + 1u;
 
@@ -361,6 +347,50 @@ namespace fpga
 						msb -= map_width;
 					}
 				}
+			}
+
+			//-------------------------------------------------------------------------------------------------------------------
+			void mmi_parser_imp::parse_mem_array(const std::string& inst_path, xml_node* xmemarray)
+			{
+				// All specimen seen so far have exactly one MemoryLayout as child of their MemArray
+				auto xlayout = xmemarray->first_node("MemoryLayout");
+				if (!xlayout)
+					throw std::invalid_argument("malformed input MMI file (failed to parse <MemoryArray> without <MemoryLayout>)");
+
+				// Phase 1: Determine the core memory size (from the CoreMemory_Width attribute of the memory layout)
+				int64_t mem_word_size = get_required_attribute_i64(xlayout, "CoreMemory_Width");
+				if (mem_word_size < 1 || mem_word_size > std::numeric_limits<unsigned>::max())
+					throw std::invalid_argument("malformed input MMI file (core memory width of <MemoryLayout> exceeds implementation limits)");
+
+				mapper m(static_cast<size_t>(mem_word_size));
+
+				// Phase 2: Record the BRAM mappings
+				//
+				// TBD: It seems that the B data-port is also used (for example when synthesizing small 64-bit wide RAMs). The code below should
+				// be generalized to allow for A/B port usage (bitlayout and MSB/LSB information seems to be accurate)
+				for (auto xbram = xlayout->first_node("BRAM"); xbram; xbram = xbram->next_sibling("BRAM"))
+				{
+					// Extract the BRAM type and location
+					auto& ram = resolve_bram(get_required_attribute(xbram, "MemType"), get_required_attribute(xbram, "Placement"));
+
+					// Process port A
+					{
+						auto xdatawidth_a = xbram->first_node("DataWidth_PortA");
+						auto xaddrrange_a = xbram->first_node("AddressRange_PortA");
+						auto xbitlayout_a = xbram->first_node("BitLayout_PortA");
+						parse_mem_array_dataport(m, ram, xdatawidth_a, xaddrrange_a, xbitlayout_a, mem_word_size);
+					}
+
+					// Process port B
+					{
+						auto xdatawidth_b = xbram->first_node("DataWidth_PortB");
+						auto xaddrrange_b = xbram->first_node("AddressRange_PortB");
+						auto xbitlayout_b = xbram->first_node("BitLayout_PortB");
+						parse_mem_array_dataport(m, ram, xdatawidth_b, xaddrrange_b, xbitlayout_b, mem_word_size);
+					}
+				}
+
+				std::cout << m << std::endl;
 			}
 
 			//-------------------------------------------------------------------------------------------------------------------
