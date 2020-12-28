@@ -352,8 +352,8 @@ namespace fpga
 					{
 						auto map_width = std::get<0>(map_slice);
 						auto map_parity = std::get<1>(map_slice);						
-						auto map_msb = static_cast<size_t>(msb);
-						auto map_lsb = static_cast<size_t>(msb - map_width) + 1u;
+						auto map_msb = static_cast<unsigned>(msb);
+						auto map_lsb = static_cast<unsigned>(msb - map_width) + 1u;
 
 						m.add(start_addr, end_addr, map_lsb, map_msb, ram, 0u, map_width, map_parity);
 
@@ -462,9 +462,22 @@ namespace fpga
 			//-------------------------------------------------------------------------------------------------------------------
 			const bram& mmi_parser_imp::resolve_bram(const std::string& type, const std::string& loc)
 			{
-				// TBD: We currently only support RAMB36E1 (RAMB36) and to some degree RAMB18 (1/2 RAMB36)
-				if (type != "RAMB36" && type != "RAMB18")
-					throw std::invalid_argument("malformed input MMI file (implementation currently only supports RAMB36)");
+				// Map to the correct RAM category
+				bram_category category;
+				{
+					if (type == "RAMB36")
+					{
+						category = bram_category::ramb36;
+					}
+					else if (type == "RAMB18")
+					{
+						category = bram_category::ramb18;
+					}
+					else
+					{
+						throw std::invalid_argument("malformed input MMI file (implementation currently only supports RAMB36 and RAMB18)");
+					}
+				}
 
 				// Parse the location string into X and Y coordinate.
 				//
@@ -484,7 +497,7 @@ namespace fpga
 #endif
 
 				// Now resolve the BRAM
-				return fpga->bram_by_loc(loc_x, loc_y);
+				return fpga->bram_by_loc(category, loc_x, loc_y);
 			}
 
 			//-------------------------------------------------------------------------------------------------------------------

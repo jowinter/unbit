@@ -17,7 +17,9 @@ namespace fpga
 			//
 			// Implementation of the XC7Z020 FPGA.
 			//
-			static const std::array<ramb36e1, 140u> brams =
+
+			// RAMB36E1 blocks
+			static const std::array<ramb36e1, 140u> brams_36 =
 			{
 					ramb36e1 { 0,  0, 0x01C795C0}, ramb36e1 { 0,  1, 0x01C79700}, ramb36e1 { 0,  2, 0x01C79840}, ramb36e1 { 0,  3, 0x01C79980},
 					ramb36e1 { 0,  4, 0x01C79AC0}, ramb36e1 { 0,  5, 0x01C79C20}, ramb36e1 { 0,  6, 0x01C79D60}, ramb36e1 { 4,  0, 0x01E0D5C0},
@@ -67,7 +69,7 @@ namespace fpga
 			//--------------------------------------------------------------------------------------------------------------------
 			const zynq7& xc7z020::get()
 			{
-				static const xc7z020_variant instance("xc7z020", brams);
+				static const xc7z020_variant instance("xc7z020", brams_36);
 				return instance;
 			}
 		}

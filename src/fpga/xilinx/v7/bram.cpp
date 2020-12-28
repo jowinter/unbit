@@ -15,8 +15,10 @@ namespace fpga
 		namespace v7
 		{
 			//--------------------------------------------------------------------------------------------------------------------
-			bram::bram(unsigned x, unsigned y, size_t num_words, size_t data_bits, size_t parity_bits, size_t bitstream_offset)
-				: x_(x), y_(y), num_words_(num_words), data_bits_(data_bits), parity_bits_(parity_bits), bitstream_offset_(bitstream_offset)
+			bram::bram(unsigned x, unsigned y, size_t num_words, size_t data_bits, size_t parity_bits, bram_category category,
+				  size_t bitstream_offset)
+				: x_(x), y_(y), num_words_(num_words), data_bits_(data_bits), parity_bits_(parity_bits), category_(category),
+				  bitstream_offset_(bitstream_offset)
 			{
 			}
 

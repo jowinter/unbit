@@ -15,6 +15,16 @@ namespace fpga
 		{
 			//--------------------------------------------------------------------------------------------------------------------
 			/**
+			 * @brief Known categories of block RAMs.
+			 */
+			enum class bram_category
+			{
+				ramb18,
+				ramb36
+			};
+
+			//--------------------------------------------------------------------------------------------------------------------
+			/**
 			 * @brief Description of a block RAM in a 7-Series FPGA (e.g. Zynq)
 			 */
 			class bram
@@ -46,6 +56,11 @@ namespace fpga
 				const size_t parity_bits_;
 
 				/**
+				 * @brief Category of this RAM.
+				 */
+				const bram_category category_;
+
+				/**
 				 * @brief Bit-offset of the first bit of the BRAM in the configuration frame data
 				 *   found in the bitstream.
 				 *
@@ -62,11 +77,12 @@ namespace fpga
 				 * @param[in] y specifies the Y coordinate of the RAM tile.
 				 * @param[in] data_bits specifies the number of data bits per RAM word.
 				 * @param[in] parity_bits specifies the number of parity bits per RAM word.
+				 * @param[in] category specifies the category of this RAM.
 				 * @param[in] bitstream_offset specifies the offset (in bits) between the start of the
 				 *   configuration frame data in the bitstream and the first bit related to the block RAM.
 				 */
 				bram(unsigned x, unsigned y, size_t num_words, size_t data_bits, size_t parity_bits,
-					size_t bitstream_offset);
+					bram_category categroy, size_t bitstream_offset);
 
 				/**
 				 * @brief Diposes a block RAM descriptor
@@ -152,6 +168,14 @@ namespace fpga
 				}
 
 				/**
+				 * @brief Gets the category of this RAM.
+				 */
+				inline bram_category category() const
+				{
+					return category_;
+				}
+
+				/**
 				 * @brief Gets the offset between the start of the bitstream's configuration area
 				 *   and the first bit related to this block RAM.
 				 */
@@ -202,6 +226,40 @@ namespace fpga
 				 * @brief Disposes a RAMB36E1 block RAM tile.
 				 */
 				~ramb36e1();
+
+			public:
+				const std::string& primitive() const override;
+
+				size_t map_to_bitstream(size_t bit_addr, bool is_parity) const override;
+			};
+
+			//--------------------------------------------------------------------------------------------------------------------
+			/**
+			 * @brief Description of a RAMB18E1 block RAM tile.
+			 */
+			class ramb18e1 final : public bram
+			{
+			private:
+				/**
+				 * @brief Enclosing RAMB36E1 primitive.
+				 */
+				const ramb36e1& ramb36;
+
+				/**
+				 * @brief Indicates if this is the top (true) or bottom (false) half.
+				 */
+				bool is_top;
+
+			public:
+				/**
+				 * @brief Construct a RAMB18E1 block RAM tile.
+				 */
+				ramb18e1(const ramb36e1& ramb36, bool is_top);
+
+				/**
+				 * @brief Disposes a RAMB36E1 block RAM tile.
+				 */
+				~ramb18e1();
 
 			public:
 				const std::string& primitive() const override;

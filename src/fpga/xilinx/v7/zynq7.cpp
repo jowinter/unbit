@@ -55,11 +55,11 @@ namespace fpga
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
-			const bram& zynq7::bram_by_loc(unsigned x, unsigned y) const
-			{
-				for (size_t i = 0u; i < num_brams_; ++i)
+			const bram& zynq7::bram_by_loc(bram_category category, unsigned x, unsigned y) const
+			{				
+				for (size_t i = 0u, num_rams = num_brams(category); i < num_rams; ++i)
 				{
-					const bram& candidate = bram_at(i);
+					const bram& candidate = bram_at(category, i);
 
 					if (candidate.x() == x && candidate.y() == y)
 						return candidate;

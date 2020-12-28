@@ -7,6 +7,7 @@
 #include "fpga/xilinx/bram.hpp"
 
 #include "fpga/xilinx/zynq7.hpp"
+#include "fpga/xilinx/mmi.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -14,6 +15,7 @@
 
 using fpga::xilinx::v7::bitstream;
 using fpga::xilinx::v7::bram;
+using fpga::xilinx::v7::bram_category;
 using fpga::xilinx::v7::zynq7;
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -61,9 +63,9 @@ int main(int argc, char *argv[])
 	const bitstream bs = bitstream::load(argv[1u]);
 	const zynq7& fpga = zynq7::get_by_idcode(bs.idcode());
 
-	for (size_t i = 0u; i < fpga.num_brams(); ++i)
+	for (size_t i = 0u; i < fpga.num_brams(bram_category::ramb36); ++i)
 	{
-	    const bram& ram = fpga.bram_at(i);
+	    const bram& ram = fpga.bram_at(bram_category::ramb36, i);
 
 	    std::cout << "//" << std::endl
 		<< "// " << ram << std::endl

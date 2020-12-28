@@ -73,20 +73,22 @@ namespace fpga
 				/**
 				 * @brief Gets the number of block RAMs of this device.
 				 */
-				inline size_t num_brams() const
+				inline size_t num_brams(bram_category category) const
 				{
-					return num_brams_;
+					return (category == bram_category::ramb36) ? num_brams_ :
+						(category == bram_category::ramb18) ? (2u * num_brams_) :
+						0u;
 				}
 
 				/**
 				 * @brief Gets a block RAM (RAMB36E1) by its index.
 				 */
-				virtual const bram& bram_at(size_t index) const = 0;
+				virtual const bram& bram_at(bram_category category, size_t index) const = 0;
 
 				/**
 				 * @brief Gets a block RAM (RAMB36E1) by its X/Y coordinate
 				 */
-				const bram& bram_by_loc(unsigned x, unsigned y) const;
+				const bram& bram_by_loc(bram_category category, unsigned x, unsigned y) const;
 
 			public:
 				/**
@@ -109,16 +111,35 @@ namespace fpga
 			{
 			private:
 				/**
-				 * @brief Block RAMs of this device.
+				 * @brief Block RAMs of this device. (RAMB36E1)
 				 */
 				const std::array<ramb36e1, NumBrams>& brams_;
+
+				/**
+				 * @brief Block RAM aliases of this device (RAMB18E1)
+				 */
+				const std::array<ramb18e1, 2u * NumBrams> brams_18_;
+
+			private:
+				/**
+				 * @brief Helper method to create (and initialize) the RAMB18E1 aliases array.
+				 */
+				template<std::size_t... I>
+				static inline const std::array<ramb18e1, sizeof...(I)>
+				make_ramb18e1_aliases(const std::array<ramb36e1, sizeof...(I) / 2u>& brams, std::index_sequence<I...>)
+				{
+					return std::array<ramb18e1, sizeof...(I)> {
+						ramb18e1 { brams[I / 2u], (I % 2u != 0u) }...
+					};
+				}
 
 			public:
 				/**
 				 * @brief Constructs a Zynq-7 variant
 				 */
 				zynq7_variant(const std::string& name, const std::array<ramb36e1, NumBrams>& brams)
-					: zynq7(name, IdCode, NumBrams), brams_(brams)
+					: zynq7(name, IdCode, NumBrams), brams_(brams),
+					  brams_18_(make_ramb18e1_aliases(brams, std::make_index_sequence<2u * NumBrams> {}))
 				{
 				}
 
@@ -133,9 +154,19 @@ namespace fpga
 				/**
 				 * @brief Gets a block RAM by its index.
 				 */
-				const bram& bram_at(size_t index) const override
+				const bram& bram_at(bram_category category, size_t index) const override
 				{
-					return brams_.at(index);
+					switch (category)
+					{
+					case bram_category::ramb36:
+						return brams_.at(index);
+
+					case bram_category::ramb18:
+						return brams_18_.at(index);
+
+					default:
+						throw std::invalid_argument("selected block ram category is not support zynq-7 device");
+					}
 				}
 
 			public:
