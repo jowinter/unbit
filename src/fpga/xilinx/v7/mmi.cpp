@@ -333,7 +333,25 @@ namespace fpga
 					if (lsb > msb)
 						throw std::invalid_argument("TODO: msb < lsb is not yet implemented");
 
-					// Map the slice as given by the bit-layout					
+					// Determine parity and data stride
+					unsigned data_stride = 0;
+					unsigned parity_stride = 0;
+
+					for (auto map_slice : bitlayout)
+					{
+						auto map_parity = std::get<1>(map_slice);
+						auto map_width = std::get<0>(map_slice);
+
+						if (map_parity)
+							parity_stride += map_width;
+						else
+							data_stride += map_width;
+					}
+
+					// Map the slice as given by the bit-layout
+					unsigned data_offset = data_stride;
+					unsigned parity_offset = parity_stride;
+
 					for (auto map_slice : bitlayout)
 					{
 						auto map_width = std::get<0>(map_slice);
@@ -341,9 +359,18 @@ namespace fpga
 						auto map_msb = static_cast<unsigned>(msb);
 						auto map_lsb = static_cast<unsigned>(msb - map_width) + 1u;
 
-						m.add(start_addr, end_addr, map_lsb, map_msb, ram, 0u, map_width, map_parity);
-
 						// FIXME: Handle reversed byte order ... (do Xilinx tools generate such files?)
+						if (map_parity)
+						{
+							parity_offset -= map_width;
+							m.add(start_addr, end_addr, map_lsb, map_msb, ram, parity_offset, parity_stride, map_parity);
+						}
+						else
+						{
+							data_offset -= map_width;
+							m.add(start_addr, end_addr, map_lsb, map_msb, ram, data_offset, data_stride, map_parity);							
+						}
+						
 						msb -= map_width;
 					}
 				}
