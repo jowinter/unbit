@@ -158,6 +158,11 @@ namespace fpga
 				 */
 				std::vector<std::shared_ptr<const bitblock>> map_word(size_t word) const;
 
+				/**
+				 * @brief Prints this mapper
+				 */
+				std::ostream& print(std::ostream& stm) const;
+
 			private:
 				// Non-copyable
 				mapper(const mapper&) = delete;
@@ -168,6 +173,14 @@ namespace fpga
 			 * @brief Prints a bitblock mapping.
 			 */
 			std::ostream& operator<< (std::ostream& stm, const mapper::bitblock& block);
+
+			/**
+			 * @brief Prints the bitblock mappings of a mapper
+			 */
+			static inline std::ostream& operator<< (std::ostream& stm, const mapper& mapper)
+			{
+				return mapper.print(stm);
+			}
 		}
 	}
 }

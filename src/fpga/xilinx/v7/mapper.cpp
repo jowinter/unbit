@@ -165,6 +165,21 @@ namespace fpga
 
 				return mapped;
 			}
+
+			//-------------------------------------------------------------------------------------------------------------------
+			std::ostream& mapper::print(std::ostream& stm) const
+			{
+				for (unsigned n = 0u; n < bitlanes_.size(); ++n)
+				{
+
+					for (auto block : bitlanes_[n])
+					{
+						stm << std::dec << std::setw(0) << "[" << n << "] == " << *block << std::endl;
+					}
+				}
+
+				return stm;
+			}
 		}
 	}
 }
