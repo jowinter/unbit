@@ -2,4 +2,4 @@
 ADD_SUBDIRECTORY(fpga)
 
 # And build the standalone tools
-ADD_SUBDIRECTORY(unbit)
+ADD_SUBDIRECTORY(tools)

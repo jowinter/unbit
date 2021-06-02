@@ -37,7 +37,7 @@ ADD_SUBDIRECTORY(src)
 # Install setup
 #
 INSTALL(DIRECTORY inc/ DESTINATION include/unbit FILES_MATCHING PATTERN "*.hpp")
-INSTALL(TARGETS unbit unbit_xilinx
+INSTALL(TARGETS unbit-dump-brams unbit_xilinx
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib)
