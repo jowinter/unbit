@@ -52,6 +52,9 @@ namespace fpga
 
 				/** @brief IDCODE extracted from the bitstream (or 0xFFFFFFFF if no IDCODE was found) */
 				uint32_t idcode_;
+				
+				/** @brief Offset of the CRC check command (or 0xFFFFFFFF if not present) */
+				uint32_t crc_check_offset_;
 
 				/** @brief In-memory data of the bitstream */
 				data_vector data_;
@@ -70,6 +73,15 @@ namespace fpga
 				 * @return The loaded bitstream object.
 				 */
 				static bitstream load(const std::string& filename, format fmt, uint32_t idcode = 0xFFFFFFFFu);
+				
+				/**
+				 * @brief Stores an uncompressed (and unencrypted) bitstream to a given file.
+				 *
+				 * @param[in] filename specifies the destiation filename (and path).
+				 *
+				 * @param[in] bs specifies the bitstream to be dumped.
+				 */
+				static void save(const std::string& filename, const bitstream& bs);
 
 			public:
 				/**
@@ -153,6 +165,11 @@ namespace fpga
 				{
 					return frame_data_begin() + frame_data_size_;
 				}
+				
+				/**
+				 * @brief Updates the CRC (if present) of this bitstream.
+				 */
+				void update_crc();
 
 				/**
 				 * @brief Reads a bit from the frame data area.
@@ -181,6 +198,13 @@ namespace fpga
 				{
 					return idcode_;
 				}
+
+				/**
+				 * @brief Sabes this bitstream to disk.
+				 *
+				 * @param[in,out] stm specifies the output stream to save this bitstream to.
+				 */
+				void save(std::ostream& stm) const;
 
 			private:
 				/**

@@ -10,6 +10,8 @@
 #include <fstream>
 #include <utility>
 
+#include <iostream>
+
 namespace fpga
 {
 	namespace xilinx
@@ -27,6 +29,7 @@ namespace fpga
 				: sync_offset_(0),
 				  frame_data_offset_(0), frame_data_size_(0),
 				  idcode_(idcode),
+				  crc_check_offset_(0xFFFFFFFFu),
 				  data_(load_binary_data(stm))
 			{
 				if (fmt == bitstream::format::bit)
@@ -152,6 +155,14 @@ namespace fpga
 								// Advance the position in the config stream
 								cfg_pos += byte_count;
 							}
+							else if (hdr == 0x30000001u)
+							{
+								// Record the CRC command
+								//crc_check_offset_ = (cfg_pos - data_.cbegin());
+
+								// Advance the position in the config stream
+								cfg_pos += byte_count;
+							}
 							else
 							{
 								// Other (currently unhandled/ignored command)
@@ -165,6 +176,7 @@ namespace fpga
 				else if (fmt == format::raw)
 				{
 					// Raw bitstream data (no leading config packets)
+					frame_data_size_ = data_.size();
 					frame_data_size_ = data_.size();
 				}
 				else
@@ -186,6 +198,18 @@ namespace fpga
 			//--------------------------------------------------------------------------------------------------------------------
 			bitstream::~bitstream() noexcept
 			{
+			}
+			
+			//--------------------------------------------------------------------------------------------------------------------
+			void bitstream::update_crc()
+			{
+				// FIXME: HACK: We currently "update" the CRC check command into to NOOPs
+				if (crc_check_offset_ != 0xFFFFFFFFu)
+				{
+					auto cmd = data_.begin() + crc_check_offset_ - 4u;
+					*cmd++ = 0x20u; *cmd++ = 0x00u; *cmd++ = 0x00u; *cmd++ = 0x00u;
+					*cmd++ = 0x20u; *cmd++ = 0x00u; *cmd++ = 0x00u; *cmd++ = 0x00u;
+				}
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
@@ -216,6 +240,7 @@ namespace fpga
 
 				return static_cast<bool>((data_[src_byte_index + frame_data_offset_] >> (bit_offset % 8u)) & 1u);
 			}
+			
 
 			//--------------------------------------------------------------------------------------------------------------------
 			void bitstream::write_frame_data_bit(size_t bit_offset, bool value)
@@ -240,6 +265,24 @@ namespace fpga
 			{
 				std::ifstream stm(filename, std::ios_base::in | std::ios_base::binary);
 				return bitstream(stm, fmt, idcode);
+			}
+
+			//--------------------------------------------------------------------------------------------------------------------
+			void bitstream::save(const std::string& filename, const bitstream& bs)
+			{
+				std::ofstream stm(filename, std::ios_base::out | std::ios_base::binary);
+				bs.save(stm);
+			}
+
+			//--------------------------------------------------------------------------------------------------------------------
+			void bitstream::save(std::ostream& f) const
+			{
+				static_assert(sizeof(std::ostream::char_type) == sizeof(uint8_t), "unsupported host system: sizeof(std::ostream::char_type) != sizeof(uint8_t)");
+
+				f.write(reinterpret_cast<const std::ostream::char_type*>(data_.data()), data_.size());
+
+				if (f.fail())
+					throw std::ios_base::failure("i/o error while writing bitstream data to disk.");
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------

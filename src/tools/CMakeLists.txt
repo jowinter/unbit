@@ -1,4 +1,6 @@
 
-ADD_EXECUTABLE(unbit-dump-brams unbit-dump-brams.cpp )
+LINK_LIBRARIES(unbit_xilinx)
 
-TARGET_LINK_LIBRARIES(unbit-dump-brams unbit_xilinx)
+ADD_EXECUTABLE(unbit-dump-brams        unbit-dump-brams.cpp)
+ADD_EXECUTABLE(unbit-substitute-brams  unbit-substitute-brams.cpp)
+
