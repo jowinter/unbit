@@ -54,14 +54,37 @@ int main(int argc, char *argv[])
 {
 	try
 	{
-		if (argc != 2)
+		if ((argc < 2) || (argc > 3))
 		{
-			std::cerr << "usage: " << argv[0u] << " <bitstream>" << std::endl;
+			std::cerr << "usage: " << argv[0u] << " <bitstream> [<fpga>]" << std::endl
+				<< std::endl << std::endl;
 			return EXIT_FAILURE;
 		}
 
-		const bitstream bs = bitstream::load(argv[1u]);
+		// Check for an explicitly given IDCODE
+		uint32_t expected_idcode;
+		bitstream::format fmt;
+
+		{
+			if (argc > 2)
+			{
+				expected_idcode = std::stoul(argv[2], nullptr, 0);
+				fmt = bitstream::format::raw;
+				std::cout << "// Raw frames / Readback data @ " << argv[1] << std::endl;
+			}
+			else
+			{
+				expected_idcode = 0xFFFFFFFFu;
+				fmt = bitstream::format::bit;
+				std::cout << "// Bitstream data @ " << argv[1] << std::endl;
+			}
+		}
+
+		const bitstream bs = bitstream::load(argv[1u], fmt, expected_idcode);
+		std::cout << "// IDCODE: 0x" << std::hex << bs.idcode() << std::dec << std::endl;
+
 		const zynq7& fpga = zynq7::get_by_idcode(bs.idcode());
+		std::cout << "// FPGA: " << fpga.name() << std::endl << std::endl;
 
 		for (size_t i = 0u; i < fpga.num_brams(bram_category::ramb36); ++i)
 		{

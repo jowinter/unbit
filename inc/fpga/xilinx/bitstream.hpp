@@ -30,6 +30,16 @@ namespace fpga
 				/** Byte data iterator (const) */
 				typedef data_vector::const_iterator const_byte_iterator;
 
+				/** Type of bitstream/configuration data to be loaded */
+				enum format
+				{
+					/** @brief Bitstream (.bit) format with configuration headers */
+					bit = 1u,
+
+					/** @brief Raw (.bin) format only containing the configuration frames */
+					raw = 2u
+				};
+
 			private:
 				/** @brief Byte offset of the first byte following the sync word. */
 				size_t sync_offset_;
@@ -50,11 +60,16 @@ namespace fpga
 				/**
 				 * @brief Loads an uncompressed (and unencrypted) bitstream from a given file.
 				 *
-				 * @param[in] filename specifies the name (and path) of the bitstream file to load.
+				 * @param[in] filename specifies the name (and path) of the bitstream file to be loaded.
+				 *
+				 * @param[in] fmt specifies the expected bitstream data format.
+				 *
+				 * @param[in] idcode specifies the expected IDCODE value
+				 *   (or 0xFFFFFFFF to indicate that the IDCODE value is to be read from the bitstream data).
 				 *
 				 * @return The loaded bitstream object.
 				 */
-				static bitstream load(const std::string& filename);
+				static bitstream load(const std::string& filename, format fmt, uint32_t idcode = 0xFFFFFFFFu);
 
 			public:
 				/**
@@ -62,8 +77,13 @@ namespace fpga
 				 *
 				 * @param[in] stm is the input stream to read the bitstream data from. The input stream
 				 *   should be opened in binary mode.
+				 *
+				 * @param[in] fmt specifies the expected bitstream data format.
+				 *
+				 * @param[in] idcode specifies the expected IDCODE value (or 0xFFFFFFFF to indicate
+				 *   that the IDCODE value is to be read from the bitstream data).
 				 */
-				bitstream(std::istream& stm);
+				bitstream(std::istream& stm, format fmt, uint32_t idcode = 0xFFFFFFFFu);
 
 				/**
 				 * @brief Move constructor for bitstream objects.
