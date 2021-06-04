@@ -85,6 +85,9 @@ namespace fpga
 					0x05u, 0x10u, 0x06u, 0x11u, 0x07u, 0x12u, 0x08u, 0x13u
 				};
 
+				if (data_offset >= 32768u)
+					throw std::out_of_range("parity bit address to be mapped is out of bounds");
+
 				// Block scale offset (for 256 entry blocks)
 				static const uint32_t block_scale = 0xCAu;
 
@@ -112,6 +115,9 @@ namespace fpga
 				{
 					0x04u, 0x0Fu
 				};
+
+				if (parity_offset >= 4096u)
+					throw std::out_of_range("parity bit address to be mapped is out of bounds");
 
 				// Block scale offset (for 256 entry blocks)
 				static const uint32_t block_scale = 0xCAu;
