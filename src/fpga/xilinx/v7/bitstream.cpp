@@ -222,7 +222,7 @@ namespace fpga
 				else if (fmt == format::raw)
 				{
 					// Raw bitstream data (no leading config packets)
-					frame_data_size_ = data_.size();
+					frame_data_offset_ = 0u;
 					frame_data_size_ = data_.size();
 				}
 				else
