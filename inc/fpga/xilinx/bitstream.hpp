@@ -40,6 +40,34 @@ namespace fpga
 					raw = 2u
 				};
 
+				/** Bitstream commnad packet info */
+				struct packet
+				{
+					/** @brief Position of this packet in its enclosing stream */
+					std::size_t offset;
+
+					/** @brief The raw command header word */
+					uint32_t hdr;
+
+					/** @brief Type of decoded packet */
+					uint32_t packet_type;
+
+					/** @brief Opcode extracted from the packet */
+					uint32_t op;
+
+					/** @brief Register operand extracted from the packet */
+					uint32_t reg;
+
+					/** @brief Number of payload words of the packet */
+					uint32_t word_count;
+
+					/** @brief Start iterator for payload data */
+					const_byte_iterator payload_start;
+
+					/** @brief End iterator for payload data */
+					const_byte_iterator payload_end;
+				};
+
 			private:
 				/** @brief Byte offset of the first byte following the sync word. */
 				size_t sync_offset_;
@@ -52,7 +80,7 @@ namespace fpga
 
 				/** @brief IDCODE extracted from the bitstream (or 0xFFFFFFFF if no IDCODE was found) */
 				uint32_t idcode_;
-				
+
 				/** @brief Offset of the CRC check command (or 0xFFFFFFFF if not present) */
 				uint32_t crc_check_offset_;
 
@@ -73,7 +101,7 @@ namespace fpga
 				 * @return The loaded bitstream object.
 				 */
 				static bitstream load(const std::string& filename, format fmt, uint32_t idcode = 0xFFFFFFFFu);
-				
+
 				/**
 				 * @brief Stores an uncompressed (and unencrypted) bitstream to a given file.
 				 *
@@ -82,6 +110,43 @@ namespace fpga
 				 * @param[in] bs specifies the bitstream to be dumped.
 				 */
 				static void save(const std::string& filename, const bitstream& bs);
+
+				/**
+				 * @brief Parses the packets in a bitstream.
+				 *
+				 * @note Documentation on the bitstream format of Xilix 7-Series bitstreams can
+				 *   be found in  [Xilinx UG470; "Bitstream Composition"].
+				 *
+				 * @param[in] filename specifies the filename of the bitstream to be parsed.
+				 */
+				static void parse(const std::string& filename, std::function<bool(const packet&)> callback);
+
+				/**
+				 * @brief Parses the packets in a bitstream.
+				 *
+				 * @note Documentation on the bitstream format of Xilix 7-Series bitstreams can
+				 *   be found in  [Xilinx UG470; "Bitstream Composition"].
+				 *
+				 * @param[in] stm specifies the input stream containing the bitstream data to parse.
+				 */
+				static void parse(std::istream& stm, std::function<bool(const packet&)> callback);
+
+				/**
+				 * @brief Parses the packets in a bitstream.
+				 *
+				 * @note Documentation on the bitstream format of Xilix 7-Series bitstreams can
+				 *   be found in  [Xilinx UG470; "Bitstream Composition"].
+				 *
+				 * @param[in] callback specifies the packet handler callback. The callback function
+				 *   is invoked for every packet in the stream. The return value of the callback indicates
+				 *   whether parsing should continue after the call.
+				 *
+				 * @param[in] start is an iterator indicating the start of bit-stream data.
+				 *
+				 * @param[in] end is an iterator indicating the end of bit-stream data.
+				 */
+				static void parse(const_byte_iterator start, const_byte_iterator end,
+					std::function<bool(const packet&)> callback);
 
 			public:
 				/**
@@ -165,7 +230,7 @@ namespace fpga
 				{
 					return frame_data_begin() + frame_data_size_;
 				}
-				
+
 				/**
 				 * @brief Updates the CRC (if present) of this bitstream.
 				 */

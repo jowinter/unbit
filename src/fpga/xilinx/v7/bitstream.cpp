@@ -25,8 +25,123 @@ namespace fpga
 			static const std::array<uint8_t, 4u> SYNC_PATTERN { 0xAAu, 0x99u, 0x55u, 0x66u };
 
 			//--------------------------------------------------------------------------------------------------------------------
+			void bitstream::parse(const std::string& filename, std::function<bool(const packet&)> callback)
+			{
+				std::ifstream stm(filename, std::ios_base::in | std::ios_base::binary);
+				parse(stm, callback);
+			}
+
+			//--------------------------------------------------------------------------------------------------------------------
+			void bitstream::parse(std::istream& stm, std::function<bool(const packet&)> callback)
+			{
+				data_vector bs = std::move(load_binary_data(stm));
+				parse(bs.cbegin(), bs.cend(), callback);
+			}
+
+			//--------------------------------------------------------------------------------------------------------------------
+			void bitstream::parse(const_byte_iterator start, const_byte_iterator end, std::function<bool(const packet&)> callback)
+			{
+				// Bitstream format with synchronization word and header commands
+
+				// Step 1: Synchronize with the start of the configuration stream (by scanning for the 0xAA995566 sync. word.)
+				//
+				// The bitstream typically contains header data, dummy padding, and markers for bus-width auto-detection before
+				// the sync word. We keep this extra data without touching it (to allow proper write-back).
+				//
+				// Reference: [Xilinx UG470; "Bitstream Composition"]
+
+				auto sync_pos = std::search(start, end, SYNC_PATTERN.cbegin(), SYNC_PATTERN.cend());
+				if (sync_pos == end)
+					throw std::invalid_argument("sync word (0xAA995566) was not found in the bitstream data.");
+
+				// The sync. offset indicates the first byte after the sync word
+				size_t sync_offset = (sync_pos - start) + SYNC_PATTERN.size();
+
+				// Step 2: Scan for a type 2 FDRI write packet with the correct number of FDRI data words for an uncompressed
+				//   bitstream.
+				//
+				// Reference: [Xilinx UG470; "Configuration Packets"]
+
+				// Pathologic cases of (partially corrupted) bitstreams could show 1-3 extra bytes near the end; we
+				// always round down to a lower 4-byte boundary (this guarantees that users of config_packets_begin/end can
+				// alway operate in 4-byte steps without any extra checks).
+
+				const size_t total_size = end - start;
+				const size_t max_config_size = total_size - sync_offset;
+				const size_t trailing_extra_bytes = max_config_size % 4u;
+
+				auto cfg_pos = start   + sync_offset;
+				auto cfg_end = cfg_pos + (max_config_size - trailing_extra_bytes);
+
+				// Register number (always set by type 1 packets, used by type 2 packets)
+				bool done = false;
+				packet pkt;
+				pkt.reg = 0u;
+
+
+				while (!done && (cfg_pos != cfg_end))
+				{
+					pkt.offset = cfg_pos - start;
+
+					// Read the packet header
+					pkt.hdr = static_cast<uint32_t>(*cfg_pos++) << 24u;
+					pkt.hdr |= static_cast<uint32_t>(*cfg_pos++) << 16u;
+					pkt.hdr |= static_cast<uint32_t>(*cfg_pos++) <<  8u;
+					pkt.hdr |= static_cast<uint32_t>(*cfg_pos++);
+
+					// Decode the packet type
+					pkt.packet_type = (pkt.hdr >> 29u) & 0x7u;
+					pkt.op = (pkt.hdr >> 27u) & 0x3u;
+					pkt.word_count = 0u;
+
+					if (pkt.packet_type == 0x1u)
+					{
+						// Type 1 packet:
+						//
+						//  31 29 28 27 26       18 17  13 12  11 10                  0
+						// +-----+-----+-----------+------+------+---------------------+
+						// | 001 |  op | 000000000 | reg  |  00  | word_count          |
+						// +-----+-----+-----------+------+------+---------------------+
+						//
+						pkt.reg = (pkt.hdr >> 13u) & 0x1Fu;
+						pkt.word_count = pkt.hdr & 0x3FFu;
+					}
+					else if (pkt.packet_type == 0x2u)
+					{
+						// Type 2 packet:
+						//
+						//  31 29 28 27 26                                            0
+						// +-----+-----+-----------------------------------------------+
+						// | 010 |  op | word_count                                    |
+						// +-----+-----+-----------------------------------------------+
+						//
+						pkt.word_count = pkt.hdr & 0x07FFFFFFu;
+					}
+					else
+					{
+						// Unknown packet type
+						throw std::invalid_argument("unsupport/unknown configuration packet");
+					}
+
+					// Compute data length, skip over the byte count if needed
+					size_t byte_count = static_cast<size_t>(pkt.word_count) * 4u;
+					if (byte_count > static_cast<size_t>(cfg_end - cfg_pos))
+						throw std::invalid_argument("malformed bitstream: packet size exceeds end of bitstream");
+
+					pkt.payload_start = cfg_pos;
+
+					// Advance the position in the config stream
+					cfg_pos += byte_count;
+					pkt.payload_end = cfg_pos;
+
+					// Invoke the packet callbacek
+					done = !callback(pkt);
+				}
+			}
+
+			//--------------------------------------------------------------------------------------------------------------------
 			bitstream::bitstream(std::istream& stm, bitstream::format fmt, uint32_t idcode)
-				: sync_offset_(0),
+				: sync_offset_(0xFFFFFFFFu),
 				  frame_data_offset_(0), frame_data_size_(0),
 				  idcode_(idcode),
 				  crc_check_offset_(0xFFFFFFFFu),
@@ -36,142 +151,73 @@ namespace fpga
 				{
 					// Bitstream format with synchronization word and header commands
 
-					// Step 1: Synchronize with the start of the configuration stream (by scanning for the 0xAA995566 sync. word.)
-					//
-					// The bitstream typically contains header data, dummy padding, and markers for bus-width auto-detection before
-					// the sync word. We keep this extra data without touching it (to allow proper write-back).
-					//
-					// Reference: [Xilinx UG470; "Bitstream Composition"]
-
-					auto sync_pos = std::search(data_.cbegin(), data_.cend(), SYNC_PATTERN.cbegin(), SYNC_PATTERN.cend());
-					if (sync_pos == data_.cend())
-						throw std::invalid_argument("sync word (0xAA995566) was not found in the bitstream data.");
-
-					// The sync. offset indicates the first byte after the sync word
-					sync_offset_ = (sync_pos - data_.cbegin()) + SYNC_PATTERN.size();
-
 					// Step 2: Scan for a type 2 FDRI write packet with the correct number of FDRI data words for an uncompressed
 					//   bitstream.
 					//
 					// Reference: [Xilinx UG470; "Configuration Packets"]
+
+					parse(data_.cbegin(), data_.cend(), [&] (const packet& pkt)
 					{
-						auto cfg_pos = config_packets_begin();
-						auto cfg_end = config_packets_end();
-
-						// Register number (always set by type 1 packets, used by type 2 packets)
-						uint32_t reg = 0u;
-
-						while (cfg_pos != cfg_end)
+						// Latch the sync offset
+						if (sync_offset_ == 0xFFFFFFFFu)
 						{
-							// Read the packet header
-							uint32_t hdr = static_cast<uint32_t>(*cfg_pos++) << 24u;
-							hdr |= static_cast<uint32_t>(*cfg_pos++) << 16u;
-							hdr |= static_cast<uint32_t>(*cfg_pos++) <<  8u;
-							hdr |= static_cast<uint32_t>(*cfg_pos++);
+							sync_offset_ = pkt.offset;
+						}
 
-							// Decode the packet type
-							const uint32_t packet_type = (hdr >> 29u) & 0x7u;
-							const uint32_t op = (hdr >> 27u) & 0x3u;
-							uint32_t word_count = 0u;
+						if (pkt.op == 0b10u && pkt.reg == 0b00100u && pkt.word_count == 1u)
+						{
+							// Write to CMD register
+							const_byte_iterator pos = pkt.payload_start;
+							uint32_t cmd = static_cast<uint32_t>(*pos++) << 24u;
+							cmd |= static_cast<uint32_t>(*pos++) << 16u;
+							cmd |= static_cast<uint32_t>(*pos++) << 8u;
+							cmd |= static_cast<uint32_t>(*pos++);
 
-							if (packet_type == 0x1u)
+							if (cmd == 0b01101)
 							{
-								// Type 1 packet:
-								//
-								//  31 29 28 27 26       18 17  13 12  11 10                  0
-								// +-----+-----+-----------+------+------+---------------------+
-								// | 001 |  op | 000000000 | reg  |  00  | word_count          |
-								// +-----+-----+-----------+------+------+---------------------+
-								//
-								reg = (hdr >> 13u) & 0x1Fu;
-								word_count = hdr & 0x3FFu;
-							}
-							else if (packet_type == 0x2u)
-							{
-								// Type 2 packet:
-								//
-								//  31 29 28 27 26                                            0
-								// +-----+-----+-----------------------------------------------+
-								// | 010 |  op | word_count                                    |
-								// +-----+-----+-----------------------------------------------+
-								//
-								word_count = hdr & 0x07FFFFFFu;
+								// DESYNC (we definitely reached the end)
+								return false;
 							}
 							else
 							{
-								// Unknown packet type
-								throw std::invalid_argument("unsupport/unknown configuration packet");
-							}
-
-							// Compute data length, skip over the byte count if needed
-							size_t byte_count = static_cast<size_t>(word_count) * 4u;
-							if (byte_count > static_cast<size_t>(cfg_end - cfg_pos))
-								throw std::invalid_argument("malformed bitstream: packet size exceeds end of bitstream");
-
-							// Interpret the current operation
-							if (op == 0b10u && reg == 0b00100u && byte_count == 4u)
-							{
-								// Write to CMD register
-								uint32_t cmd = static_cast<uint32_t>(*cfg_pos++) << 24u;
-								cmd |= static_cast<uint32_t>(*cfg_pos++) << 16u;
-								cmd |= static_cast<uint32_t>(*cfg_pos++) << 8u;
-								cmd |= static_cast<uint32_t>(*cfg_pos++);
-
-								if (cmd == 0b01101)
-								{
-									// DESYNC (we definitely reached the end)
-									break;
-								}
-								else
-								{
-									// Other command
-								}
-							}
-							else if (op == 0b10u && reg == 0b01100u && word_count > 0u)
-							{
-								// Write to IDCODE register
-								uint32_t extracted_idcode = static_cast<uint32_t>(*cfg_pos++) << 24u;
-								extracted_idcode |= static_cast<uint32_t>(*cfg_pos++) << 16u;
-								extracted_idcode |= static_cast<uint32_t>(*cfg_pos++) << 8u;
-								extracted_idcode |= static_cast<uint32_t>(*cfg_pos++);
-
-								if ((idcode_ != 0xFFFFFFFFu) && (idcode_ != extracted_idcode))
-								{
-									throw std::invalid_argument("mismatch between actual (extracted from bitstream) and expected idcode values");
-								}
-
-								idcode_ = extracted_idcode;
-							}
-							else if (op == 0b10u && reg == 0b00010u && word_count > 0u)
-							{
-								// Write to FDRI (frame data input) register
-								if (frame_data_size_ > 0u)
-									throw std::invalid_argument("unsupported bitstream features: found multiple FDRI write commands (compressed bitstream?)");
-
-								// Record the start and size of the frame data
-								frame_data_offset_ = (cfg_pos - config_packets_begin()) + sync_offset_;
-								frame_data_size_ = byte_count;
-
-								// Advance the position in the config stream
-								cfg_pos += byte_count;
-							}
-							else if (hdr == 0x30000001u)
-							{
-								// Record the CRC command
-								//crc_check_offset_ = (cfg_pos - data_.cbegin());
-
-								// Advance the position in the config stream
-								cfg_pos += byte_count;
-							}
-							else
-							{
-								// Other (currently unhandled/ignored command)
-
-								// Advance the position in the config stream
-								cfg_pos += byte_count;
+								// Other command (ignored for noew)
 							}
 						}
-					}
+						else if (pkt.op == 0b10u && pkt.reg == 0b01100u && pkt.word_count > 0u)
+						{
+							// Write to IDCODE register
+							const_byte_iterator pos = pkt.payload_start;
+							uint32_t extracted_idcode = static_cast<uint32_t>(*pos++) << 24u;
+							extracted_idcode |= static_cast<uint32_t>(*pos++) << 16u;
+							extracted_idcode |= static_cast<uint32_t>(*pos++) << 8u;
+							extracted_idcode |= static_cast<uint32_t>(*pos++);
+
+							if ((idcode_ != 0xFFFFFFFFu) && (idcode_ != extracted_idcode))
+							{
+								throw std::invalid_argument("mismatch between actual (extracted from bitstream) and expected idcode values");
+							}
+
+							idcode_ = extracted_idcode;
+						}
+						else if (pkt.op == 0b10u && pkt.reg == 0b00010u && pkt.word_count > 0u)
+						{
+							// Write to FDRI (frame data input) register
+							if (frame_data_size_ > 0u)
+								throw std::invalid_argument("unsupported bitstream features: found multiple FDRI write commands (compressed bitstream?)");
+
+							// Record the start and size of the frame data
+							frame_data_offset_ = pkt.offset + 4u;
+							frame_data_size_ = pkt.payload_end - pkt.payload_start;
+						}
+						else if (pkt.hdr == 0x30000001u)
+						{
+							// Record the CRC command
+							crc_check_offset_ = pkt.offset;
+						}
+
+						// Continue parsing
+						return true;
+					});
 				}
 				else if (fmt == format::raw)
 				{
@@ -199,7 +245,7 @@ namespace fpga
 			bitstream::~bitstream() noexcept
 			{
 			}
-			
+
 			//--------------------------------------------------------------------------------------------------------------------
 			void bitstream::update_crc()
 			{
@@ -240,7 +286,7 @@ namespace fpga
 
 				return static_cast<bool>((data_[src_byte_index + frame_data_offset_] >> (bit_offset % 8u)) & 1u);
 			}
-			
+
 
 			//--------------------------------------------------------------------------------------------------------------------
 			void bitstream::write_frame_data_bit(size_t bit_offset, bool value)
