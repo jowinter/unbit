@@ -38,9 +38,10 @@ namespace fpga
 			/**
 			 * @brief Array of known Zynq-7 variants.
 			 */
-			static const std::array<zynq7_known_variant, 1u> zynq7_variants
+			static const std::array<zynq7_known_variant, 2u> zynq7_variants
 			{
-				zynq7_known_variant { &xc7z020::match, &xc7z020::get } // XC7Z020
+				zynq7_known_variant { &xc7z010::match, &xc7z010::get }, // XC7Z010
+				zynq7_known_variant { &xc7z020::match, &xc7z020::get }  // XC7Z020
 			};
 
 			//--------------------------------------------------------------------------------------------------------------------
@@ -56,7 +57,7 @@ namespace fpga
 
 			//--------------------------------------------------------------------------------------------------------------------
 			const bram& zynq7::bram_by_loc(bram_category category, unsigned x, unsigned y) const
-			{				
+			{
 				for (size_t i = 0u, num_rams = num_brams(category); i < num_rams; ++i)
 				{
 					const bram& candidate = bram_at(category, i);

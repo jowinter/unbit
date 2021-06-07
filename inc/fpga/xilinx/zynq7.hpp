@@ -180,6 +180,24 @@ namespace fpga
 			};
 
 			//--------------------------------------------------------------------------------------------------------------------
+			// XC7Z010
+			//
+			struct xc7z010 final
+			{
+				/**
+				 * @brief Tries to match the IDCODE of the XC7Z010 device model.
+				 */
+				static bool match(uint32_t idcode);
+
+				/**
+				 * @brief Gets the XC7Z020 device model.
+				 *
+				 * @return A reference to the XC7Z010 device model.
+				 */
+				static const zynq7& get();
+			};
+
+			//--------------------------------------------------------------------------------------------------------------------
 			// XC7Z020
 			//
 			struct xc7z020 final
