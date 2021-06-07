@@ -104,7 +104,7 @@ namespace fpga
 						// +-----+-----+-----------+------+------+---------------------+
 						//
 						pkt.reg = (pkt.hdr >> 13u) & 0x1Fu;
-						pkt.word_count = pkt.hdr & 0x3FFu;
+						pkt.word_count = pkt.hdr & 0x7FFu;
 					}
 					else if (pkt.packet_type == 0x2u)
 					{
