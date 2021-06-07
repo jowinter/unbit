@@ -38,9 +38,10 @@ namespace fpga
 			/**
 			 * @brief Array of known Zynq-7 variants.
 			 */
-			static const std::array<zynq7_known_variant, 2u> zynq7_variants
+			static const std::array<zynq7_known_variant, 3u> zynq7_variants
 			{
 				zynq7_known_variant { &xc7z010::match, &xc7z010::get }, // XC7Z010
+				zynq7_known_variant { &xc7z015::match, &xc7z015::get }, // XC7Z015
 				zynq7_known_variant { &xc7z020::match, &xc7z020::get }  // XC7Z020
 			};
 
