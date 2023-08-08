@@ -1,4 +1,5 @@
 # Xilinx FPGA Bitstream Manipulation Tools for Zynq7 (XC7Z010/015/020) FPGAs
+![CMake CI](https://github.com/jowinter/unbit/actions/workflows/c-cpp.yml/badge.svg)
 
 This small (and very experimetal) project implements tooling to manipulate the content
 of block RAMs (RAMB36) of several Xilinx Zynq-7000 FPGAs (XC7Z010/015/020).
