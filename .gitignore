@@ -1,4 +1,5 @@
 # Build directories
+/build
 /out
 
 # Visual Studio local files
