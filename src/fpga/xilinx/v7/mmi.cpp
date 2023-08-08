@@ -13,6 +13,7 @@
 #include <fstream>
 #include <cstdio>
 #include <cerrno>
+#include <limits>
 
 namespace fpga
 {
