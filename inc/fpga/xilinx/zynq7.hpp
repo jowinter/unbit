@@ -5,8 +5,7 @@
 #ifndef FPGA_XILINX_ZYNQ7_HPP_
 #define FPGA_XILINX_ZYNQ7_HPP_ 1
 
-#include "common.hpp"
-#include "bram.hpp"
+#include "xilinx_fpga.hpp"
 
 #include <array>
 #include <string>
@@ -24,24 +23,8 @@ namespace fpga
 			/**
 			 * @brief Description of a Zynq-7000 FPGA device
 			 */
-			class zynq7
+			class zynq7 : public xilinx_fpga
 			{
-			protected:
-				/**
-				 * @brief Name of this device.
-				 */
-				const std::string name_;
-
-				/**
-				 * @brief IDCODE of this FPGA model.
-				 */
-				const uint32_t idcode_;
-
-				/**
-				 * @brief Number of block RAMs (RAMB36E1) in this device.
-				 */
-				const size_t num_brams_;
-
 			protected:
 				/**
 				* @brief Constructs a Zynq-7 device.
@@ -55,25 +38,9 @@ namespace fpga
 
 			public:
 				/**
-				 * @brief Gets the name of this device.
-				 */
-				inline const std::string& name() const
-				{
-					return name_;
-				}
-
-				/**
-				 * @brief Gets the IDCODE of this device.
-				 */
-				inline uint32_t idcode() const
-				{
-					return idcode_;
-				}
-
-				/**
 				 * @brief Gets the number of block RAMs of this device.
 				 */
-				inline size_t num_brams(bram_category category) const
+				inline size_t num_brams(bram_category category) const override final
 				{
 					return (category == bram_category::ramb36) ? num_brams_ :
 						(category == bram_category::ramb18) ? (2u * num_brams_) :
@@ -85,21 +52,11 @@ namespace fpga
 				 */
 				virtual const bram& bram_at(bram_category category, size_t index) const = 0;
 
-				/**
-				 * @brief Gets a block RAM (RAMB36E1) by its X/Y coordinate
-				 */
-				const bram& bram_by_loc(bram_category category, unsigned x, unsigned y) const;
-
 			public:
 				/**
 				 * @brief Gets the Zynq-7 FPGA for a given IDCODE.
 				 */
 				static const zynq7& get_by_idcode(uint32_t idcode);
-
-			private:
-				// Non-copyable
-				zynq7(zynq7&) = delete;
-				zynq7& operator=(zynq7&) = delete;
 			};
 
 			//--------------------------------------------------------------------------------------------------------------------

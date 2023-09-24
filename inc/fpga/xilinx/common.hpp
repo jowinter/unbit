@@ -44,6 +44,8 @@ namespace fpga
 
 	namespace xilinx
 	{
+		class xilinx_fpga;
+
 		/**
 		 * @brief Common infrastructure for Xilinx Series-7 FPGAs
 		 */

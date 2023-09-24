@@ -6,6 +6,7 @@ ADD_LIBRARY(unbit_xilinx STATIC
   v7/bitstream.cpp
   v7/bitlayout.cpp
   v7/bram.cpp
+  v7/xilinx_fpga.cpp
   v7/ramb36e1.cpp
   v7/zynq7.cpp
   v7/xc7z010.cpp
