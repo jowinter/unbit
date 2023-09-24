@@ -13,6 +13,9 @@ ADD_LIBRARY(unbit_xilinx STATIC
   v7/xc7z020.cpp
   v7/mapper.cpp
   v7/mmi.cpp
- "v7/ramb18e1.cpp")
+  v7/ramb18e1.cpp
+  vup/ramb36e2.cpp
+  vup/virtex_up.cpp
+  vup/xcvu9p.cpp)
 
 TARGET_INCLUDE_DIRECTORIES(unbit_xilinx PRIVATE "${PROJECT_SOURCE_DIR}/external")

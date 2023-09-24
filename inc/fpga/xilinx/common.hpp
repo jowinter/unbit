@@ -19,6 +19,29 @@
 
 namespace fpga
 {
+	// Pull-in standard types
+	using std::size_t;
+
+	using std::uint8_t;
+	using std::uint16_t;
+	using std::uint32_t;
+
+	using std::int8_t;
+	using std::int16_t;
+	using std::int32_t;
+
+	/**
+	 * @brief Optional reference to an object of type T
+	 */
+	template<typename T>
+	using optional_ref = std::optional<std::reference_wrapper<T>>;
+
+	/**
+	 * @brief Optional reference to an object of type T
+	 */
+	template<typename T>
+	using optional_const_ref = std::optional<std::reference_wrapper<const T>>;
+
 	namespace xilinx
 	{
 		/**
@@ -26,34 +49,6 @@ namespace fpga
 		 */
 		namespace v7
 		{
-			// Pull-in standard types
-			using std::size_t;
-
-			using std::uint8_t;
-			using std::uint16_t;
-			using std::uint32_t;
-
-			using std::int8_t;
-			using std::int16_t;
-			using std::int32_t;
-
-			// Forward declarations
-			class bitstream;
-			class bram;
-			class zynq7;
-
-			/**
-			 * @brief Optional reference to an object of type T
-			 */
-			template<typename T>
-			using optional_ref = std::optional<std::reference_wrapper<T>>;
-
-			/**
-			 * @brief Optional reference to an object of type T
-			 */
-			template<typename T>
-			using optional_const_ref = std::optional<std::reference_wrapper<const T>>;
-
 			// Forward declarations
 			class bitstream;
 			class bram;
@@ -61,6 +56,16 @@ namespace fpga
 			class ramb36e1;
 			class zynq7;
 		}
+
+		/**
+		 * @brief Infrastructure for Xilinx Virtex UltraScale+ FPGAs
+		 */
+		namespace vup
+		{
+			// Forward declarations
+			class ramb36e1;
+			class virtex_up;
+		};
 	}
 }
 

@@ -7,6 +7,7 @@
 #include "fpga/xilinx/bram.hpp"
 
 #include "fpga/xilinx/zynq7.hpp"
+#include "fpga/xilinx/vup.hpp"
 #include "fpga/xilinx/mmi.hpp"
 
 #include <iostream>
@@ -17,6 +18,11 @@ using fpga::xilinx::v7::bitstream;
 using fpga::xilinx::v7::bram;
 using fpga::xilinx::v7::bram_category;
 using fpga::xilinx::v7::zynq7;
+
+using fpga::xilinx::vup::virtex_up;
+
+/// @todo Refactor (to allow more generic access)
+typedef virtex_up fpga_family;
 
 //---------------------------------------------------------------------------------------------------------------------
 static void dump_ram_data(const bitstream& bs, const bram& ram, bool is_parity)
@@ -83,7 +89,7 @@ int main(int argc, char *argv[])
 		const bitstream bs = bitstream::load(argv[1u], fmt, expected_idcode);
 		std::cout << "// IDCODE: 0x" << std::hex << bs.idcode() << std::dec << std::endl;
 
-		const zynq7& fpga = zynq7::get_by_idcode(bs.idcode());
+		const fpga_family& fpga = fpga_family::get_by_idcode(bs.idcode());
 		std::cout << "// FPGA: " << fpga.name() << std::endl << std::endl;
 
 		for (size_t i = 0u; i < fpga.num_brams(bram_category::ramb36); ++i)
