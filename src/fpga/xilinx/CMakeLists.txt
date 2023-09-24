@@ -11,8 +11,6 @@ ADD_LIBRARY(unbit_xilinx STATIC
   v7/xc7z010.cpp
   v7/xc7z015.cpp
   v7/xc7z020.cpp
-  v7/mapper.cpp
-  v7/mmi.cpp
   v7/ramb18e1.cpp
   vup/ramb36e2.cpp
   vup/virtex_up.cpp

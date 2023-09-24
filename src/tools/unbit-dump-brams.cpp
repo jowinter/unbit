@@ -6,8 +6,6 @@
 #include "fpga/xilinx/bitstream.hpp"
 #include "fpga/xilinx/bram.hpp"
 
-#include "fpga/xilinx/mmi.hpp"
-
 #include <iostream>
 #include <iomanip>
 #include <fstream>
