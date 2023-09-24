@@ -7,31 +7,10 @@
 #ifndef TOOLS_FPGA_FAMILY_HPP_
 #define TOOLS_FPGA_FAMILY_HPP_ 1
 
-/// @todo Refactor (to allow more generic access)
-#if defined(EXPERIMENTAL_VIRTEX_UP) && (EXPERIMENTAL_VIRTEX_UP != 0)
+///! @todo Currently a hack (refctoring in progress)
+#include "fpga/xilinx/xilinx_fpga.hpp"
 
-#include "fpga/xilinx/vup.hpp"
-
-//
-// Virtex UltraScale+ build
-//
-using fpga::xilinx::vup::virtex_up;
-typedef virtex_up fpga_family;
-
-#define FPGA_BUILD_TAG "vup"
-
-#else
-
-//
-// Zynq-7 build
-//
-#include "fpga/xilinx/zynq7.hpp"
-using fpga::xilinx::v7::zynq7;
-typedef zynq7 fpga_family;
-
-#define FPGA_BUILD_TAG "zynq7"
-
-
-#endif
+using fpga::xilinx::xilinx_fpga;
+using fpga::xilinx::xilinx_fpga_by_idcode;
 
 #endif // #ifndef TOOLS_FPGA_FAMILY_HPP_

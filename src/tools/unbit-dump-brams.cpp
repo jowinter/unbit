@@ -55,7 +55,6 @@ int main(int argc, char *argv[])
 		if ((argc < 2) || (argc > 3))
 		{
 			std::cerr << "usage: " << argv[0u] << " <bitstream> [<fpga>]" << std::endl
-			  	<< "fpga build tag: " << FPGA_BUILD_TAG  << std::endl
 				<< std::endl << std::endl;
 			return EXIT_FAILURE;
 		}
@@ -82,7 +81,7 @@ int main(int argc, char *argv[])
 		const bitstream bs = bitstream::load(argv[1u], fmt, expected_idcode);
 		std::cout << "// IDCODE: 0x" << std::hex << bs.idcode() << std::dec << std::endl;
 
-		const fpga_family& fpga = fpga_family::get_by_idcode(bs.idcode());
+		const xilinx_fpga& fpga = xilinx_fpga_by_idcode(bs.idcode());
 		std::cout << "// FPGA: " << fpga.name() << std::endl << std::endl;
 
 		for (size_t i = 0u; i < fpga.num_brams(bram_category::ramb36); ++i)

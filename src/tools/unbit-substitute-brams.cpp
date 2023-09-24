@@ -29,14 +29,13 @@ int main(int argc, char *argv[])
 				<< "obtained from FPGA readback (read_back_hw_device -bin_file). The resulting bitstream, with substituted"  << std::endl
 				<< "BRAMs is written to <result> and can be used to configure FPGAs (note that this tool currently does not" << std::endl
 				<< "update CRC values)" << std::endl << std::endl
-				<< "fpga build tag: " << FPGA_BUILD_TAG  << std::endl
 				<< std::endl;
 			return EXIT_FAILURE;
 		}
 
 		// Load the bitstream to be updated
 		bitstream bs = bitstream::load(argv[2u], bitstream::format::bit);
-		const fpga_family& fpga = fpga_family::get_by_idcode(bs.idcode());
+		const xilinx_fpga& fpga = xilinx_fpga_by_idcode(bs.idcode());
 		std::cout << "fpga: " << fpga.name() << std::endl;
 
 		// Load the source RAMs

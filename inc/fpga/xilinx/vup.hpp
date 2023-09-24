@@ -48,7 +48,7 @@ namespace fpga
 
 				size_t map_to_bitstream(size_t bit_addr, bool is_parity) const override;
 			};
-			
+
 			//--------------------------------------------------------------------------------------------------------------------
 			/**
 			 * @brief Description of a Virtex UltraScale+ FPGA device

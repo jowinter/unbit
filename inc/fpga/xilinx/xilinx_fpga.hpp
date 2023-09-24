@@ -17,7 +17,7 @@ namespace fpga
 	{
 		using v7::bram;
 		using v7::bram_category;
-		
+
 		/**
 		 * @brief Common baseline for Xilinx Virtex-7 FPGAs (and lookalikes)
 		 */
@@ -86,7 +86,10 @@ namespace fpga
 			// Non-copyable
 			xilinx_fpga(xilinx_fpga&) = delete;
 			xilinx_fpga& operator=(xilinx_fpga&) = delete;
-		};	      
+		};
+
+		///! @todo Currently a hack (refctoring in progress)
+		extern const xilinx_fpga& xilinx_fpga_by_idcode(const uint32_t idcode);
 	}
 }
 
