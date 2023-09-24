@@ -6,8 +6,6 @@
 #include "fpga/xilinx/bitstream.hpp"
 #include "fpga/xilinx/bram.hpp"
 
-#include "fpga/xilinx/zynq7.hpp"
-#include "fpga/xilinx/vup.hpp"
 #include "fpga/xilinx/mmi.hpp"
 
 #include <iostream>
@@ -17,12 +15,8 @@
 using fpga::xilinx::v7::bitstream;
 using fpga::xilinx::v7::bram;
 using fpga::xilinx::v7::bram_category;
-using fpga::xilinx::v7::zynq7;
 
-using fpga::xilinx::vup::virtex_up;
-
-/// @todo Refactor (to allow more generic access)
-typedef virtex_up fpga_family;
+#include "fpga_family.hpp"
 
 //---------------------------------------------------------------------------------------------------------------------
 static void dump_ram_data(const bitstream& bs, const bram& ram, bool is_parity)
@@ -63,6 +57,7 @@ int main(int argc, char *argv[])
 		if ((argc < 2) || (argc > 3))
 		{
 			std::cerr << "usage: " << argv[0u] << " <bitstream> [<fpga>]" << std::endl
+			  	<< "fpga build tag: " << FPGA_BUILD_TAG  << std::endl
 				<< std::endl << std::endl;
 			return EXIT_FAILURE;
 		}

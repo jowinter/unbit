@@ -5,8 +5,6 @@
 
 #include "fpga/xilinx/bitstream.hpp"
 #include "fpga/xilinx/bram.hpp"
-
-#include "fpga/xilinx/zynq7.hpp"
 #include "fpga/xilinx/mmi.hpp"
 
 #include <iostream>
@@ -16,7 +14,8 @@
 using fpga::xilinx::v7::bitstream;
 using fpga::xilinx::v7::bram;
 using fpga::xilinx::v7::bram_category;
-using fpga::xilinx::v7::zynq7;
+
+#include "fpga_family.hpp"
 
 //---------------------------------------------------------------------------------------------------------------------
 int main(int argc, char *argv[])
@@ -30,14 +29,15 @@ int main(int argc, char *argv[])
 				<< "Substitutes initialization data of BRAM blocks in a given <bitstream> by BRAM content obtained" << std::endl
 				<< "obtained from FPGA readback (read_back_hw_device -bin_file). The resulting bitstream, with substituted"  << std::endl
 				<< "BRAMs is written to <result> and can be used to configure FPGAs (note that this tool currently does not" << std::endl
-				<< "update CRC values)" << std::endl
+				<< "update CRC values)" << std::endl << std::endl
+				<< "fpga build tag: " << FPGA_BUILD_TAG  << std::endl
 				<< std::endl;
 			return EXIT_FAILURE;
 		}
 
 		// Load the bitstream to be updated
 		bitstream bs = bitstream::load(argv[2u], bitstream::format::bit);
-		const zynq7& fpga = zynq7::get_by_idcode(bs.idcode());
+		const fpga_family& fpga = fpga_family::get_by_idcode(bs.idcode());
 		std::cout << "fpga: " << fpga.name() << std::endl;
 
 		// Load the source RAMs

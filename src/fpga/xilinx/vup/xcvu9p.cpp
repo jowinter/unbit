@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Infrastructure for Xilinx Zynq-7000 FPGAs
+ * @brief Infrastructure for Xilinx Virtex UltraScale+ FPGAs
  */
 #include "fpga/xilinx/vup.hpp"
 #include "fpga/xilinx/bram.hpp"
@@ -15,7 +15,7 @@ namespace fpga
 		{
 			//--------------------------------------------------------------------------------------------------------------------
 			//
-			// Implementation of the XC7Z020 FPGA.
+			// Implementation of the XCVU9P FPGA.
 			//
 
 			// RAMB36E2 blocks
