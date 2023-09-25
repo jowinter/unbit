@@ -40,7 +40,7 @@ static void dump_ram_data(const bitstream& bs, const bram& ram, bool is_parity)
 		{
 			// Xilinx INIT/INITP strings use a reversed order
 			std::cout << std::hex << std::setw(2) << std::setfill('0')
-			<< static_cast<unsigned>(line_buf[line_width - i - 1u]);
+				  << static_cast<unsigned>(line_buf[line_width - i - 1u]);
 		}
 
 		std::cout << std::endl;
@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 		if ((argc < 2) || (argc > 3))
 		{
 			std::cerr << "usage: " << argv[0u] << " <bitstream> [<fpga>]" << std::endl
-				<< std::endl << std::endl;
+				  << std::endl << std::endl;
 			return EXIT_FAILURE;
 		}
 
@@ -88,9 +88,20 @@ int main(int argc, char *argv[])
 		{
 			const bram& ram = fpga.bram_at(bram_category::ramb36, i);
 
+			// Determine the storage offset of the RAM block in the bitstream file.
+			const auto& slr = bs.slr(ram.slr());
+			const size_t ram_bit_offset     = ram.bitstream_offset();
+			const size_t ram_storage_offset = slr.frame_data_offset + (ram_bit_offset / 8u);
+
+
 			std::cout << "//" << std::endl
-			<< "// " << ram << std::endl
-			<< "//" << std::endl;
+				  << "// " << ram << std::endl
+				  << "//" << std::endl
+				  << "// SLR" << std::dec << ram.slr() << "+0x"
+				  << std::hex << std::setw(8) << std::setfill('0') << ram_bit_offset
+				  << " (storage @ 0x"
+				  << std::hex << std::setw(8) << std::setfill('0') << ram_storage_offset
+				  << ")" << std::endl << std::endl;
 
 			// Dump the RAM word data
 			dump_ram_data(bs, ram, false);

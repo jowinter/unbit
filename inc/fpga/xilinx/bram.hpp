@@ -112,7 +112,7 @@ namespace fpga
 				 *  start of the configuration frame of the bitstream. (An address relative to the RAM can be computed by
 				 *  subtracting the bitstream offset of this RAM itself).
 				 *
-				 * @bug Support for SLR index != 0 is currently not (properly) implemented.
+				 * @note The returned value is given relative to the SLR's data frame.
 				 */
 				virtual size_t map_to_bitstream(size_t bit_addr, bool is_parity) const = 0;
 
@@ -123,8 +123,6 @@ namespace fpga
 				 * @param[in]  extract_parity indicates whether data (false) or parity (true) data shall be extracted.
 				 *
 				 * @return A fresh byte vector containing the extracted data bits.
-				 *
-				 * @bug Support for SLR index != 0 is currently not (properly) implemented.
 				 */
 				std::vector<uint8_t> extract(const bitstream& bits, bool extract_parity) const;
 
@@ -134,8 +132,6 @@ namespace fpga
 				 * @param[in,out] bits specifies the target bitstream.
 				 * @param[in] inject_parity indicates whether data (false) or parity (true) data shall be injected.
 				 * @param[in] data specifies the byte vector to be injected.
-				 *
-				 * @bug Support for SLR index != 0 is currently not (properly) implemented.
 				 */
 				void inject(bitstream& bits, bool inject_parity, const std::vector<uint8_t>& data) const;
 
@@ -199,7 +195,7 @@ namespace fpga
 				 * @brief Gets the offset between the start of the bitstream's configuration area
 				 *   and the first bit related to this block RAM.
 				 *
-				 * @bug Support for SLR index != 0 is currently not (properly) implemented.
+				 * @note The returned value is given relative to the SLR's data frame.
 				 */
 				inline size_t bitstream_offset() const
 				{

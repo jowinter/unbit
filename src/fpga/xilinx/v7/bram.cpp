@@ -55,7 +55,7 @@ namespace fpga
 					const size_t src_bit = map_to_bitstream(i, extract_parity);
 
 					// Extract the source value and update the extracted byte array
-					if (bits.read_frame_data_bit(src_bit))
+					if (bits.read_frame_data_bit(src_bit, slr_))
 						extracted[i / 8u] |= 1u << (i % 8u);
 				}
 
@@ -86,7 +86,7 @@ namespace fpga
 					// Inject into the bitstream
 
 					// Extract the source value and update the extracted byte array
-					bits.write_frame_data_bit(dst_bit, src_value);
+					bits.write_frame_data_bit(dst_bit, src_value, slr_);
 				}
 			}
 

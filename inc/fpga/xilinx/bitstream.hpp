@@ -108,21 +108,42 @@ namespace fpga
 					const_byte_iterator payload_end;
 				};
 
+				/**
+				 * @brief Geometry description of an SLR.
+				 */
+				struct slr_info final
+				{
+					/**
+					 * @brief Constructs a new (invalid) SLR info
+					 */
+					inline slr_info()
+						: sync_offset(0xFFFFFFFFu),
+						  frame_data_offset(0), frame_data_size(0),
+						  idcode(0xFFFFFFFF),
+						  crc_check_offset(0xFFFFFFFFu)
+					{
+					}
+
+					/** @brief Byte offset of the first byte following the sync word. */
+					size_t sync_offset;
+
+					/** @brief Byte offset of the first byte of the config frames are. */
+					size_t frame_data_offset;
+
+					/** @brief Size of the config frame data in bytes. */
+					size_t frame_data_size;
+
+					/** @brief IDCODE extracted from the bitstream (or 0xFFFFFFFF if no IDCODE was found in this SLR) */
+					uint32_t idcode;
+
+/** @brief Offset of the CRC check command (or 0xFFFFFFFF if not present) */
+					uint32_t crc_check_offset;
+
+				};
+
 			private:
-				/** @brief Byte offset of the first byte following the sync word. */
-				size_t sync_offset_;
-
-				/** @brief Byte offset of the first byte of the config frames are. */
-				size_t frame_data_offset_;
-
-				/** @brief Size of the config frame data in bytes. */
-				size_t frame_data_size_;
-
-				/** @brief IDCODE extracted from the bitstream (or 0xFFFFFFFF if no IDCODE was found) */
-				uint32_t idcode_;
-
-				/** @brief Offset of the CRC check command (or 0xFFFFFFFF if not present) */
-				uint32_t crc_check_offset_;
+				/** @brief SLR slices of this bitstream */
+				std::vector<slr_info> slrs_;
 
 				/** @brief In-memory data of the bitstream */
 				data_vector data_;
@@ -152,7 +173,7 @@ namespace fpga
 				static void save(const std::string& filename, const bitstream& bs);
 
 				/**
-				 * @brief Parses the packets in a bitstream.
+				 * @brief Parses the packets in a bitstream (all substreams are parsed).
 				 *
 				 * @note Documentation on the bitstream format of Xilix 7-Series bitstreams can
 				 *   be found in  [Xilinx UG470; "Bitstream Composition"].
@@ -162,7 +183,7 @@ namespace fpga
 				static void parse(const std::string& filename, std::function<bool(const packet&)> callback);
 
 				/**
-				 * @brief Parses the packets in a bitstream.
+				 * @brief Parses the packets in a bitstream (all substreams are parsed).
 				 *
 				 * @note Documentation on the bitstream format of Xilix 7-Series bitstreams can
 				 *   be found in  [Xilinx UG470; "Bitstream Composition"].
@@ -172,7 +193,24 @@ namespace fpga
 				static void parse(std::istream& stm, std::function<bool(const packet&)> callback);
 
 				/**
-				 * @brief Parses the packets in a bitstream.
+				 * @brief Parses the packets in a single substream of a bitstream (all substreams are parsed).
+				 *
+				 * @note Documentation on the bitstream format of Xilix 7-Series bitstreams can
+				 *   be found in  [Xilinx UG470; "Bitstream Composition"].
+				 *
+				 * @param[in] start is an iterator indicates the start of bit-stream data.
+				 *
+				 * @param[in] end is an iterator indicates the end of bit-stream data.
+				 *
+				 * @param[in] callback specifies the packet handler callback. The callback function
+				 *   is invoked for every packet in the stream. The return value of the callback indicates
+				 *   whether parsing should continue after the call.
+				 */
+				static void parse(const_byte_iterator start, const_byte_iterator end,
+						  std::function<bool(const packet&)> callback);
+
+				/**
+				 * @brief Parses the packets in a single substream of a bitstream.
 				 *
 				 * @note Documentation on the bitstream format of Xilix 7-Series bitstreams can
 				 *   be found in  [Xilinx UG470; "Bitstream Composition"].
@@ -225,62 +263,70 @@ namespace fpga
 				~bitstream() noexcept;
 
 				/**
+				 * @brief Gets an SLR information object.
+				 */
+				inline const slr_info& slr(unsigned slr_index) const
+				{
+					return slrs_.at(slr_index);
+				}
+
+				/**
 				 * @brief Gets the byte offset from the start of the bitstream data to the first byte of the FPGA
 				 *   configuration frames.
 				 */
-				inline size_t frame_data_offset() const
+				inline size_t frame_data_offset(unsigned slr_index) const
 				{
-					return frame_data_offset_;
+					return slr(slr_index).frame_data_offset;
 				}
 
 				/**
 				 * @brief Gets the size of the FPGA configuration frame data in bytes.
 				 */
-				inline size_t frame_data_size() const
+				inline size_t frame_data_size(unsigned slr_index) const
 				{
-					return frame_data_size_;
+					return slr(slr_index).frame_data_size;
 				}
 
 				/**
 				 * @brief Gets a byte iterator to the begin of the config packets area. (const)
 				 */
-				const_byte_iterator config_packets_begin() const;
+				const_byte_iterator config_packets_begin(unsigned slr_index) const;
 
 				/**
 				 * @brief Gets a byte iterator to the end of the config packets area. (const)
 				 */
-				const_byte_iterator config_packets_end() const;
+				const_byte_iterator config_packets_end(unsigned slr_index) const;
 
 				/**
 				 * @brief Gets a byte iterator to the begin of the frame data area. (non-const)
 				 */
-				inline byte_iterator frame_data_begin()
+				inline byte_iterator frame_data_begin(unsigned slr_index)
 				{
-					return data_.begin() + frame_data_offset_;
+					return data_.begin() + frame_data_offset(slr_index);
 				}
 
 				/**
 				 * @brief Gets a byte iterator to the end of the frame data area. (non-const)
 				 */
-				inline byte_iterator frame_data_end()
+				inline byte_iterator frame_data_end(unsigned slr_index)
 				{
-					return frame_data_begin() + frame_data_size_;
+					return frame_data_begin(slr_index) + frame_data_size(slr_index);
 				}
 
 				/**
 				 * @brief Gets a byte iterator to the begin of the frame data area. (const)
 				 */
-				inline const_byte_iterator frame_data_begin() const
+				inline const_byte_iterator frame_data_begin(unsigned slr_index) const
 				{
-					return data_.cbegin() + frame_data_offset_;
+					return data_.cbegin() + frame_data_offset(slr_index);
 				}
 
 				/**
 				 * @brief Gets a byte iterator to the end of the frame data area. (const)
 				 */
-				inline const_byte_iterator frame_data_end() const
+				inline const_byte_iterator frame_data_end(unsigned slr_index) const
 				{
-					return frame_data_begin() + frame_data_size_;
+					return frame_data_begin(slr_index) + frame_data_size(slr_index);
 				}
 
 				/**
@@ -296,7 +342,7 @@ namespace fpga
 				 *
 				 * @return The read-back value of the bit.
 				 */
-				bool read_frame_data_bit(size_t bit_offset) const;
+				bool read_frame_data_bit(size_t bit_offset, unsigned slr_index) const;
 
 				/**
 				 * @brief Writes a bit in the frame data area.
@@ -306,14 +352,14 @@ namespace fpga
 				 *
 				 * @param[in] value the value to write at the given location.
 				 */
-				void write_frame_data_bit(size_t bit_offset, bool value);
+				void write_frame_data_bit(size_t bit_offset, bool value, unsigned slr_index);
 
 				/**
 				 * @brief Gets the device IDCODE that was parsed from the bitstream's configuration packets.
 				 */
 				inline uint32_t idcode() const
 				{
-					return idcode_;
+					return slr(0).idcode;
 				}
 
 				/**
@@ -334,7 +380,7 @@ namespace fpga
 				/**
 				 * @brief Performs a range check for a slice of the frame data range.
 				 */
-				void check_frame_data_range(size_t offset, size_t length) const;
+				void check_frame_data_range(size_t offset, size_t length, unsigned slr_index) const;
 
 				/**
 				 * @brief Remaps a byte offset into the frame data area (adjusting for 32-bit word swaps as needed).

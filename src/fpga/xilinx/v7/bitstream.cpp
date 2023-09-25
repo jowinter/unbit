@@ -42,9 +42,15 @@ namespace fpga
 			void bitstream::parse(std::istream& stm, std::function<bool(const packet&)> callback)
 			{
 				data_vector bs = load_binary_data(stm);
+				parse(bs.cbegin(), bs.cend(), callback);
+			}
+
+			//--------------------------------------------------------------------------------------------------------------------
+			void bitstream::parse(const_byte_iterator start, const_byte_iterator end, std::function<bool(const packet&)> callback)
+			{
 				size_t slr = 0u;
 
-				for (const_byte_iterator cur = bs.cbegin(), start = bs.cbegin(), end = bs.cend(); cur != end; slr += 1u)
+				for (const_byte_iterator cur = start; cur != end; slr += 1u)
 				{
 					cur = parse(cur, end, cur - start, slr, callback);
 				}
@@ -185,15 +191,12 @@ namespace fpga
 					// Invoke the packet callback
 					done = !callback(pkt);
 
-					if (!done)
+					if (pkt.op == 0b10 && pkt.reg == 0b11110 && pkt.word_count > 0u)
 					{
-						if (pkt.op == 0b10 && pkt.reg == 0b11110 && pkt.word_count > 0u)
-						{
-							// Check for magic sequence (write to reg 0x1e) with non-zero
-							// payload that seems to trigger the next bitstream.
-							cfg_pos = pkt.payload_start;
-							break;
-						}
+						// Check for magic sequence (write to reg 0x1e) with non-zero
+						// payload that seems to trigger the next bitstream.
+						cfg_pos = pkt.payload_start;
+						break;
 					}
 				}
 
@@ -203,11 +206,7 @@ namespace fpga
 
 			//--------------------------------------------------------------------------------------------------------------------
 			bitstream::bitstream(std::istream& stm, bitstream::format fmt, uint32_t idcode)
-				: sync_offset_(0xFFFFFFFFu),
-				  frame_data_offset_(0), frame_data_size_(0),
-				  idcode_(idcode),
-				  crc_check_offset_(0xFFFFFFFFu),
-				  data_(load_binary_data(stm))
+				: data_(load_binary_data(stm))
 			{
 				if (fmt == bitstream::format::bit)
 				{
@@ -217,35 +216,36 @@ namespace fpga
 					//   bitstream.
 					//
 					// Reference: [Xilinx UG470; "Configuration Packets"]
+					//
+					// Algorithm for the frame-data information:
+					// - In the first pass we extract all (sub-)bitstreams (via the parse method)
+					//   (This may contain more streams than we have SLRs)
+					//
+					// - In the second pass, after "parse" has completed, we filter the extract
+					//   SLR info objects (only retaining the sub-bitstreams that actually have an FDRI write
+					//   with frame data as SLRs)
+					//
 
-					parse(data_.cbegin(), data_.cend(), 0u, 0u, [&] (const packet& pkt)
+					// Pass 1: Extract everything
+					std::vector<slr_info> substreams;
+
+					parse(data_.cbegin(), data_.cend(), [&] (const packet& pkt)
 					{
+						// Grow the sub-streams array (if needed)
+						if (pkt.stream_index >= substreams.size())
+						{
+							substreams.emplace_back();
+						}
+
+						slr_info& self = substreams.at(pkt.stream_index);
+
 						// Latch the sync offset
-						if (sync_offset_ == 0xFFFFFFFFu)
+						if (self.sync_offset == 0xFFFFFFFFu)
 						{
-							sync_offset_ = pkt.offset;
+							self.sync_offset = pkt.offset;
 						}
 
-						if (pkt.op == 0b10u && pkt.reg == 0b00100u && pkt.word_count == 1u)
-						{
-							// Write to CMD register
-							const_byte_iterator pos = pkt.payload_start;
-							uint32_t cmd = static_cast<uint32_t>(*pos++) << 24u;
-							cmd |= static_cast<uint32_t>(*pos++) << 16u;
-							cmd |= static_cast<uint32_t>(*pos++) << 8u;
-							cmd |= static_cast<uint32_t>(*pos++);
-
-							if (cmd == 0b01101)
-							{
-								// DESYNC (we definitely reached the end of this slice)
-								return false;
-							}
-							else
-							{
-								// Other command (ignored for now)
-							}
-						}
-						else if (pkt.op == 0b10u && pkt.reg == 0b01100u && pkt.word_count > 0u)
+						if (pkt.op == 0b10u && pkt.reg == 0b01100u && pkt.word_count > 0u)
 						{
 							// Write to IDCODE register
 							const_byte_iterator pos = pkt.payload_start;
@@ -254,38 +254,64 @@ namespace fpga
 							extracted_idcode |= static_cast<uint32_t>(*pos++) << 8u;
 							extracted_idcode |= static_cast<uint32_t>(*pos++);
 
-							if ((idcode_ != 0xFFFFFFFFu) && (idcode_ != extracted_idcode))
+							if ((self.idcode != 0xFFFFFFFFu) && (self.idcode != extracted_idcode))
 							{
 								throw std::invalid_argument("mismatch between actual (extracted from bitstream) and expected idcode values");
 							}
 
-							idcode_ = extracted_idcode;
+							self.idcode = extracted_idcode;
 						}
 						else if (pkt.op == 0b10u && pkt.reg == 0b00010u && pkt.word_count > 0u)
 						{
 							// Write to FDRI (frame data input) register
-							if (frame_data_size_ > 0u)
+							if (self.frame_data_size > 0u)
+							{
 								throw std::invalid_argument("unsupported bitstream features: found multiple FDRI write commands (compressed bitstream?)");
+							}
 
 							// Record the start and size of the frame data
-							frame_data_offset_ = pkt.offset + 4u;
-							frame_data_size_ = pkt.payload_end - pkt.payload_start;
+							self.frame_data_offset = pkt.storage_offset + 4u;
+							self.frame_data_size   = pkt.payload_end - pkt.payload_start;
 						}
 						else if (pkt.hdr == 0x30000001u)
 						{
 							// Record the CRC command
-							crc_check_offset_ = pkt.offset;
+							//
+							///! @bug To be replaced by visitor-style rewriter
+							self.crc_check_offset = pkt.offset;
 						}
 
 						// Continue parsing
 						return true;
 					});
+
+					// Pass 2: Retain the substreams with a non-empty FDRI write (uncompressed frame data) as SLR
+					//
+					// NOTE: We currently assume that SLRs always come in proper order (inside the bitstream).
+					slrs_.reserve(substreams.size());
+
+					for (const auto& self : substreams)
+					{
+						if (self.frame_data_size > 0u)
+						{
+							slrs_.emplace_back(self);
+						}
+					}
+
+					if (slrs_.size() == 0u)
+					{
+						throw std::invalid_argument("unsupported bitstream features: bitstream did not contain any frame data slices");
+					}
 				}
 				else if (fmt == format::raw)
 				{
 					// Raw bitstream data (no leading config packets)
-					frame_data_offset_ = 0u;
-					frame_data_size_ = data_.size();
+
+					///! @bug Currently broken for SLR count >1 (should clone size information from a given reference bitstream and/or FPGA)
+					slr_info& slr = slrs_.emplace_back();
+					slr.frame_data_offset = 0u;
+					slr.frame_data_size = data_.size();
+					slr.idcode = idcode;
 				}
 				else
 				{
@@ -296,9 +322,7 @@ namespace fpga
 
 			//--------------------------------------------------------------------------------------------------------------------
 			bitstream::bitstream(bitstream&& other) noexcept
-				: sync_offset_(other.sync_offset_),
-				  frame_data_offset_(other.frame_data_offset_), frame_data_size_(other.frame_data_size_),
-				  idcode_(other.idcode_),
+				: slrs_(std::move(other.slrs_)),
 				  data_(std::move(other.data_))
 			{
 			}
@@ -312,59 +336,64 @@ namespace fpga
 			void bitstream::update_crc()
 			{
 				// FIXME: HACK: We currently "update" the CRC check command into to NOOPs
-				if (crc_check_offset_ != 0xFFFFFFFFu)
+				for (auto& self : slrs_)
 				{
-					auto cmd = data_.begin() + crc_check_offset_ - 4u;
-					*cmd++ = 0x20u; *cmd++ = 0x00u; *cmd++ = 0x00u; *cmd++ = 0x00u;
-					*cmd++ = 0x20u; *cmd++ = 0x00u; *cmd++ = 0x00u; *cmd++ = 0x00u;
+					if (self.crc_check_offset != 0xFFFFFFFFu)
+					{
+						auto cmd = data_.begin() + self.crc_check_offset - 4u;
+
+						// Replace the CRC command with two NOPs
+						*cmd++ = 0x20u; *cmd++ = 0x00u; *cmd++ = 0x00u; *cmd++ = 0x00u;
+						*cmd++ = 0x20u; *cmd++ = 0x00u; *cmd++ = 0x00u; *cmd++ = 0x00u;
+					}
 				}
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
-			bitstream::const_byte_iterator bitstream::config_packets_begin() const
+			bitstream::const_byte_iterator bitstream::config_packets_begin(unsigned slr_index) const
 			{
 				// Start with the first byte following the sync packet
-				return data_.cbegin() + sync_offset_;
+				return data_.cbegin() + slr(slr_index).sync_offset;
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
-			bitstream::const_byte_iterator bitstream::config_packets_end() const
+			bitstream::const_byte_iterator bitstream::config_packets_end(unsigned slr_index) const
 			{
 				// Pathologic cases of (partially corrupted) bitstreams could show 1-3 extra bytes near the end; we
 				// always round down to a lower 4-byte boundary (this guarantees that users of config_packets_begin/end can
 				// alway operate in 4-byte steps without any extra checks).
 
-				const size_t max_config_size = data_.size() - sync_offset_;
+				const size_t max_config_size = data_.size() - slr(slr_index).sync_offset;
 				const size_t trailing_extra_bytes = max_config_size % 4u;
 				return data_.cbegin() + (max_config_size - trailing_extra_bytes);
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
-			bool bitstream::read_frame_data_bit(size_t bit_offset) const
+			bool bitstream::read_frame_data_bit(size_t bit_offset, unsigned slr_index) const
 			{
 				// Determine and map the source byte offset
 				const size_t src_byte_index = map_frame_data_offset(bit_offset / 8u);
-				check_frame_data_range(src_byte_index, 1u);
+				check_frame_data_range(src_byte_index, 1u, slr_index);
 
-				return static_cast<bool>((data_[src_byte_index + frame_data_offset_] >> (bit_offset % 8u)) & 1u);
+				return static_cast<bool>((data_[src_byte_index + slr(slr_index).frame_data_offset] >> (bit_offset % 8u)) & 1u);
 			}
 
 
 			//--------------------------------------------------------------------------------------------------------------------
-			void bitstream::write_frame_data_bit(size_t bit_offset, bool value)
+			void bitstream::write_frame_data_bit(size_t bit_offset, bool value, unsigned slr_index)
 			{
 				const size_t dst_byte_index = map_frame_data_offset(bit_offset / 8u);
-				check_frame_data_range(dst_byte_index, 1u);
+				check_frame_data_range(dst_byte_index, 1u, slr_index);
 
 				if (value)
 				{
 					// Set the bit
-					data_[dst_byte_index + frame_data_offset_] |= (1u << (bit_offset % 8u));
+					data_[dst_byte_index + slr(slr_index).frame_data_offset] |= (1u << (bit_offset % 8u));
 				}
 				else
 				{
 					// Clear the bit
-					data_[dst_byte_index + frame_data_offset_] &= ~(1u << (bit_offset % 8u));
+					data_[dst_byte_index + slr(slr_index).frame_data_offset] &= ~(1u << (bit_offset % 8u));
 				}
 			}
 
@@ -428,9 +457,9 @@ namespace fpga
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
-			void bitstream::check_frame_data_range(size_t offset, size_t length) const
+			void bitstream::check_frame_data_range(size_t offset, size_t length, unsigned slr_index) const
 			{
-				if (offset >= frame_data_size_ || (frame_data_size_ - offset) < length)
+				if (offset >= slr(slr_index).frame_data_size || (slr(slr_index).frame_data_size - offset) < length)
 					throw std::out_of_range("frame data slice is out of bounds");
 			}
 
