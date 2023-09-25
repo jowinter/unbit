@@ -65,6 +65,50 @@ static const char* type1_op_name(uint32_t op)
 }
 
 //---------------------------------------------------------------------------------------------------------------------
+// Well-known commands (for type1 cmd regiter
+//
+static const char* type1_cmd_name(const bitstream::packet& pkt)
+{
+	uint32_t cmd = 0xFFFFFFFF;
+
+	if (pkt.word_count == 1u)
+	{
+		// Exactly one word of payload is present, decode it.
+		auto cfg_pos = pkt.payload_start;
+
+		cmd =  static_cast<uint32_t>(*cfg_pos++) << 24u;
+		cmd |= static_cast<uint32_t>(*cfg_pos++) << 16u;
+		cmd |= static_cast<uint32_t>(*cfg_pos++) <<  8u;
+		cmd |= static_cast<uint32_t>(*cfg_pos++);
+	}
+
+	switch (cmd)
+	{
+	case 0b00000: return "NULL";
+	case 0b00001: return "WCFG";
+	case 0b00010: return "MFW";
+	case 0b00011: return "LFRM";
+	case 0b00100: return "RCFG";
+	case 0b00101: return "START";
+	case 0b00110: return "RCAP";
+	case 0b00111: return "RCRC";
+	case 0b01000: return "AGHIGH";
+	case 0b01001: return "SWITCH";
+	case 0b01010: return "GRESTORE";
+	case 0b01011: return "SHUTDOWN";
+	case 0b01100: return "GCAPTURE";
+	case 0b01101: return "DESYNC";
+	case 0b01110: return "RESERVED";
+	case 0b01111: return "IPROG";
+	case 0b10000: return "CRCC";
+	case 0b10001: return "LTIMER";
+	case 0b10010: return "BSPI_READ";
+	case 0b10011: return "FALL_EDGE";
+	default: return "cmd?";
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 static bool dump_packet(const bitstream::packet& pkt)
 {
 	std::cout << "[" << std::hex
@@ -89,9 +133,13 @@ static bool dump_packet(const bitstream::packet& pkt)
 			std::cout << " type1 " << type1_op_name(pkt.op)
 				  << " reg=0x" << std::setw(2) << std::setfill('0') << pkt.reg
 				  << " [" << type1_reg_name(pkt.reg) << "]";
+
+			// For command packets: show the command name
+			if (pkt.reg == 0b00100)
+			{
+				std::cout << " " << type1_cmd_name(pkt);
+			}
 		}
-
-
 	}
 	else if (pkt.packet_type == 0x2)
 	{
