@@ -36,7 +36,7 @@ namespace fpga
 				/**
 				 * @brief Construct a RAMB36E1 block RAM tile.
 				 */
-				ramb36e2(unsigned x, unsigned y, size_t bitstream_offset);
+				ramb36e2(unsigned x, unsigned y, size_t bitstream_offset, unsigned slr = 0u);
 
 				/**
 				 * @brief Disposes a RAMB36E1 block RAM tile.

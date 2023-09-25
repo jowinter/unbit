@@ -127,8 +127,8 @@ namespace fpga
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
-			ramb36e1::ramb36e1(unsigned x, unsigned y, size_t bitstream_offset)
-				: bram(x, y, 1024u, 32u, 4u, bram_category::ramb36, bitstream_offset)
+			ramb36e1::ramb36e1(unsigned x, unsigned y, size_t bitstream_offset, unsigned slr)
+				: bram(x, y, 1024u, 32u, 4u, bram_category::ramb36, bitstream_offset, slr)
 			{
 			}
 

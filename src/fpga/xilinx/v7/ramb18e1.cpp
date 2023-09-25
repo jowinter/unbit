@@ -15,11 +15,11 @@ namespace fpga
 		//
 		// Configuration frames on Xilnx 7-series FPGAs are exctcly 101
 		namespace v7
-		{		
+		{
 			//--------------------------------------------------------------------------------------------------------------------
 			ramb18e1::ramb18e1(const ramb36e1& ramb36, bool is_top)
-				: bram(ramb36.x(), 2u * ramb36.y() + (is_top ? 1u : 0u), 1024u, 16u, 4u, bram_category::ramb18,
-				  ramb36.bitstream_offset()), ramb36(ramb36), is_top(is_top)
+			  : bram(ramb36.x(), 2u * ramb36.y() + (is_top ? 1u : 0u), 1024u, 16u, 4u, bram_category::ramb18,
+				 ramb36.bitstream_offset(), ramb36.slr()), ramb36(ramb36), is_top(is_top)
 			{
 			}
 

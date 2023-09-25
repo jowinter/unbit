@@ -31,6 +31,11 @@ namespace fpga
 			{
 			protected:
 				/**
+				 * @brief Super-logic slice (SLR) of this RAM.
+				 */
+				const unsigned slr_;
+
+				/**
 				 * @brief X location of the RAM tile.
 				 */
 				const unsigned x_;
@@ -80,9 +85,10 @@ namespace fpga
 				 * @param[in] category specifies the category of this RAM.
 				 * @param[in] bitstream_offset specifies the offset (in bits) between the start of the
 				 *   configuration frame data in the bitstream and the first bit related to the block RAM.
+				 * @param[in] slr specifies the zero-based index of the SLR bitstream of this RAM.
 				 */
 				bram(unsigned x, unsigned y, size_t num_words, size_t data_bits, size_t parity_bits,
-					bram_category categroy, size_t bitstream_offset);
+				     bram_category categroy, size_t bitstream_offset, unsigned slr);
 
 				/**
 				 * @brief Diposes a block RAM descriptor
@@ -105,6 +111,8 @@ namespace fpga
 				 * @return The bitstream offset of the given RAM bit. The returned offset is a bit-address relative to the
 				 *  start of the configuration frame of the bitstream. (An address relative to the RAM can be computed by
 				 *  subtracting the bitstream offset of this RAM itself).
+				 *
+				 * @bug Support for SLR index != 0 is currently not (properly) implemented.
 				 */
 				virtual size_t map_to_bitstream(size_t bit_addr, bool is_parity) const = 0;
 
@@ -115,6 +123,8 @@ namespace fpga
 				 * @param[in]  extract_parity indicates whether data (false) or parity (true) data shall be extracted.
 				 *
 				 * @return A fresh byte vector containing the extracted data bits.
+				 *
+				 * @bug Support for SLR index != 0 is currently not (properly) implemented.
 				 */
 				std::vector<uint8_t> extract(const bitstream& bits, bool extract_parity) const;
 
@@ -124,8 +134,18 @@ namespace fpga
 				 * @param[in,out] bits specifies the target bitstream.
 				 * @param[in] inject_parity indicates whether data (false) or parity (true) data shall be injected.
 				 * @param[in] data specifies the byte vector to be injected.
+				 *
+				 * @bug Support for SLR index != 0 is currently not (properly) implemented.
 				 */
 				void inject(bitstream& bits, bool inject_parity, const std::vector<uint8_t>& data) const;
+
+				/**
+				 * @brief Gets the SLR index of this RAM tile.
+				 */
+				inline unsigned slr() const
+				{
+					return slr_;
+				}
 
 				/**
 				 * @brief Gets the X location of this RAM tile.
@@ -178,6 +198,8 @@ namespace fpga
 				/**
 				 * @brief Gets the offset between the start of the bitstream's configuration area
 				 *   and the first bit related to this block RAM.
+				 *
+				 * @bug Support for SLR index != 0 is currently not (properly) implemented.
 				 */
 				inline size_t bitstream_offset() const
 				{
@@ -220,7 +242,7 @@ namespace fpga
 				/**
 				 * @brief Construct a RAMB36E1 block RAM tile.
 				 */
-				ramb36e1(unsigned x, unsigned y, size_t bitstream_offset);
+				ramb36e1(unsigned x, unsigned y, size_t bitstream_offset, unsigned slr = 0u);
 
 				/**
 				 * @brief Disposes a RAMB36E1 block RAM tile.
