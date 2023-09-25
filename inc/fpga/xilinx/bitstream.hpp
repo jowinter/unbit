@@ -40,22 +40,62 @@ namespace fpga
 					raw = 2u
 				};
 
-				/** Bitstream commnad packet info */
+				/** Bitstream command packet info */
 				struct packet
 				{
-					/** @brief Position of this packet in its enclosing stream */
+					/**
+					 * @brief Zero-based index of the (sub-)bitstream to which this packet belongs.
+					 *
+					 * @note Virtex-7 style FPGA bitstreams seem to allow some leeway with respect
+					 *   to (sub-)bitstreams. Observations on bitstreams for larger FPGA show that
+					 *   there is no 1:1 correspondence between this index and the SLR it (may)
+					 *   configure.
+					 *
+					 *   Tools wishing to parse the config frames for SLRs can do so by tracking
+					 *   a change in the stream index and the corresponding FDRI write packets.
+					 *   (OBSERVATION: On devices with 3 SLRs there seem to be at least 3 substreams,
+					 *    with FDRI write packets)
+					 */
+					std::size_t stream_index;
+
+					/**
+					 * @brief Position of this packet within its enclosing file/buffer storage.
+					 *
+					 * @note This offset tracks the packet's start position with respect to the
+					 *   physical storage container (i.e. it counts the number of bytes since
+					 *   including the size of all previous SLRs).
+					 */
+					std::size_t storage_offset;
+
+					/**
+					 * @brief Position of this packet in its enclosing (sub-)bitstream.
+					 */
 					std::size_t offset;
 
 					/** @brief The raw command header word */
 					uint32_t hdr;
 
-					/** @brief Type of decoded packet */
+					/**
+					 * @brief Type of decoded packet
+					 */
 					uint32_t packet_type;
 
-					/** @brief Opcode extracted from the packet */
+					/**
+					 * @brief Opcode extracted from the packet
+					 *
+					 * @note The bitstream parser tracks the relationship between type1/type2 packets.
+					 *   For type2 packets this field is filled from the previous type1 packet (or
+					 *   0x00000000 if no previous type1 packet exists).
+					 */
 					uint32_t op;
 
-					/** @brief Register operand extracted from the packet */
+					/**
+					 * @brief Register operand extracted from the packet
+					 *
+					 * @note The bitstream parser tracks the relationship between type1/type2 packets.
+					 *   For type2 packets this field is filled from the previous type1 packet (or
+					 *   0xffffffff if no previous type1 packet exists).
+					 */
 					uint32_t reg;
 
 					/** @brief Number of payload words of the packet */
@@ -137,16 +177,28 @@ namespace fpga
 				 * @note Documentation on the bitstream format of Xilix 7-Series bitstreams can
 				 *   be found in  [Xilinx UG470; "Bitstream Composition"].
 				 *
+				 * @param[in] start is an iterator indicates the start of bit-stream data.
+				 *
+				 * @param[in] end is an iterator indicates the end of bit-stream data.
+				 *
+				 * @param[in] base_file_offset indicates the absolute byte offset of the byte referenced
+				 *   by @p start with respect to its enclosing file/array. This parameter is used to calculate
+				 *   the absolute byte offset of data packets with respect to the enclosing file/array.
+				 *
+				 * @param[in] stream_index indicates the index of the (sub-)bitstream for this parse operation.
+				 *   This parameter is forwarded verbatimly to the callback.
+				 *
 				 * @param[in] callback specifies the packet handler callback. The callback function
 				 *   is invoked for every packet in the stream. The return value of the callback indicates
 				 *   whether parsing should continue after the call.
 				 *
-				 * @param[in] start is an iterator indicating the start of bit-stream data.
-				 *
-				 * @param[in] end is an iterator indicating the end of bit-stream data.
+				 * @return An iterator indicating the end of bit-stream data that has been parsed by this
+				 *   call. The returned iterator is equal to @p end if the complete input data has been
+				 *   exhausted.
 				 */
-				static void parse(const_byte_iterator start, const_byte_iterator end,
-					std::function<bool(const packet&)> callback);
+				static const_byte_iterator parse(const_byte_iterator start, const_byte_iterator end,
+								 size_t base_file_offset, size_t slr,
+								 std::function<bool(const packet&)> callback);
 
 			public:
 				/**

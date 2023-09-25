@@ -11,6 +11,7 @@
 #include <utility>
 
 #include <iostream>
+#include <iomanip>
 
 namespace fpga
 {
@@ -24,6 +25,12 @@ namespace fpga
 			/** @brief Bitstream SYNC pattern for Series-7 FPGAs (cf. [Xilinx UG470; "Bitstream Composition"]) */
 			static const std::array<uint8_t, 4u> SYNC_PATTERN { 0xAAu, 0x99u, 0x55u, 0x66u };
 
+			/** @brief Bitstream SYNC word (in decoded packet header format) */
+			static const uint32_t SYNC_WORD = (static_cast<uint32_t>(SYNC_PATTERN[0u]) << 24u) |
+				(static_cast<uint32_t>(SYNC_PATTERN[1u]) << 16u) |
+				(static_cast<uint32_t>(SYNC_PATTERN[2u]) <<  8u) |
+				static_cast<uint32_t>(SYNC_PATTERN[3u]);
+
 			//--------------------------------------------------------------------------------------------------------------------
 			void bitstream::parse(const std::string& filename, std::function<bool(const packet&)> callback)
 			{
@@ -34,14 +41,35 @@ namespace fpga
 			//--------------------------------------------------------------------------------------------------------------------
 			void bitstream::parse(std::istream& stm, std::function<bool(const packet&)> callback)
 			{
-				data_vector bs = std::move(load_binary_data(stm));
-				parse(bs.cbegin(), bs.cend(), callback);
+				data_vector bs = load_binary_data(stm);
+				size_t slr = 0u;
+
+				for (const_byte_iterator cur = bs.cbegin(), start = bs.cbegin(), end = bs.cend(); cur != end; slr += 1u)
+				{
+					cur = parse(cur, end, cur - start, slr, callback);
+				}
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
-			void bitstream::parse(const_byte_iterator start, const_byte_iterator end, std::function<bool(const packet&)> callback)
+			bitstream::const_byte_iterator bitstream::parse(const_byte_iterator start, const_byte_iterator end,
+									size_t base_file_offset, size_t slr,
+									std::function<bool(const packet&)> callback)
 			{
 				// Bitstream format with synchronization word and header commands
+				//
+				// This parsers method designed to process Virtex-7 (and UltraScale+) style bitstream. Very large Xilinx FPGAs (such as
+				// the VCU9P and the larger Virtex-7 FPGAs) use stacked-silicon integration (SSI) technology. For these FPGAs the bitstream
+				// is organized into a master super logic region (SLR) and one or more slave SLRs.
+				//
+				// Slave SLRs can be viewed as "sub" bitstreams. Slave SLRs are encapsulate in a special sequence of type1 and
+				// type2 commands. The following snippet. Documentation in UG470 is scarce about the exact mechanism of packing.
+				//
+				// Analyzing bitstreams of the VCU9P UltraScale+ FPGA suggests that there are multiple configuration frames separated
+				// by SYNC words.
+				//
+				// The bit-stream examined on the VC9UP appears to contain 4 such "slave" bitstreams. Three of them seem to carry
+				// an FDRI command with configuration frame data (for SLR0, SLR1, SLR2).
+				//
 
 				// Step 1: Synchronize with the start of the configuration stream (by scanning for the 0xAA995566 sync. word.)
 				//
@@ -65,7 +93,6 @@ namespace fpga
 				// Pathologic cases of (partially corrupted) bitstreams could show 1-3 extra bytes near the end; we
 				// always round down to a lower 4-byte boundary (this guarantees that users of config_packets_begin/end can
 				// alway operate in 4-byte steps without any extra checks).
-
 				const size_t total_size = end - start;
 				const size_t max_config_size = total_size - sync_offset;
 				const size_t trailing_extra_bytes = max_config_size % 4u;
@@ -74,14 +101,21 @@ namespace fpga
 				auto cfg_end = cfg_pos + (max_config_size - trailing_extra_bytes);
 
 				// Register number (always set by type 1 packets, used by type 2 packets)
+				bool     current_write = false;
+				uint32_t current_reg   = 0xFFFFFFFFu;
+
 				bool done = false;
+
 				packet pkt;
 				pkt.reg = 0u;
-
 
 				while (!done && (cfg_pos != cfg_end))
 				{
 					pkt.offset = cfg_pos - start;
+
+					// Track the absolue offset and SLR/stream index of this packet
+					pkt.storage_offset = pkt.offset + base_file_offset;
+					pkt.stream_index   = slr;
 
 					// Read the packet header
 					pkt.hdr = static_cast<uint32_t>(*cfg_pos++) << 24u;
@@ -105,6 +139,10 @@ namespace fpga
 						//
 						pkt.reg = (pkt.hdr >> 13u) & 0x1Fu;
 						pkt.word_count = pkt.hdr & 0x7FFu;
+
+						// Update the currently selected register (and operation)
+						current_reg   = pkt.reg;
+						current_write = (pkt.op == 0b10);
 					}
 					else if (pkt.packet_type == 0x2u)
 					{
@@ -116,6 +154,16 @@ namespace fpga
 						// +-----+-----+-----------------------------------------------+
 						//
 						pkt.word_count = pkt.hdr & 0x07FFFFFFu;
+
+						// Back-annotate from previous type1 packet
+						pkt.op  = current_write ? 0b10 : 0b00;
+						pkt.reg = current_reg;
+					}
+					else if (pkt.hdr == SYNC_WORD)
+					{
+						// SYNC word (next bitstream follows)
+						cfg_pos -= 4u;
+						break;
 					}
 					else
 					{
@@ -134,9 +182,23 @@ namespace fpga
 					cfg_pos += byte_count;
 					pkt.payload_end = cfg_pos;
 
-					// Invoke the packet callbacek
+					// Invoke the packet callback
 					done = !callback(pkt);
+
+					if (!done)
+					{
+						if (pkt.op == 0b10 && pkt.reg == 0b11110 && pkt.word_count > 0u)
+						{
+							// Check for magic sequence (write to reg 0x1e) with non-zero
+							// payload that seems to trigger the next bitstream.
+							cfg_pos = pkt.payload_start;
+							break;
+						}
+					}
 				}
+
+				// Return the final position in the bitstream
+				return cfg_pos;
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
@@ -156,7 +218,7 @@ namespace fpga
 					//
 					// Reference: [Xilinx UG470; "Configuration Packets"]
 
-					parse(data_.cbegin(), data_.cend(), [&] (const packet& pkt)
+					parse(data_.cbegin(), data_.cend(), 0u, 0u, [&] (const packet& pkt)
 					{
 						// Latch the sync offset
 						if (sync_offset_ == 0xFFFFFFFFu)
@@ -175,12 +237,12 @@ namespace fpga
 
 							if (cmd == 0b01101)
 							{
-								// DESYNC (we definitely reached the end)
+								// DESYNC (we definitely reached the end of this slice)
 								return false;
 							}
 							else
 							{
-								// Other command (ignored for noew)
+								// Other command (ignored for now)
 							}
 						}
 						else if (pkt.op == 0b10u && pkt.reg == 0b01100u && pkt.word_count > 0u)
