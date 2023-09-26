@@ -52,38 +52,65 @@ int main(int argc, char *argv[])
 {
 	try
 	{
-		if ((argc < 2) || (argc > 3))
+		if (argc != 2)
 		{
-			std::cerr << "usage: " << argv[0u] << " <bitstream> [<fpga>]" << std::endl
+			std::cerr << "usage: " << argv[0u] << " <bitstream>" << std::endl
+				  << std::endl
+				  << "note: dumping of raw readback files has been removed from this tool"   << std::endl
+				  << "extraction of bram content is possible by using the bram substitution" << std::endl
+				  << "tool to inject the readback data into a fresh bitstream, followed by use" << std::endl
+				  << "of this tool for extraction of bram content in textual form."
 				  << std::endl << std::endl;
 			return EXIT_FAILURE;
 		}
 
 		// Check for an explicitly given IDCODE
-		uint32_t expected_idcode;
-		bitstream::format fmt;
-
-		{
-			if (argc > 2)
-			{
-				expected_idcode = std::stoul(argv[2], nullptr, 0);
-				fmt = bitstream::format::raw;
-				std::cout << "// Raw frames / Readback data @ " << argv[1] << std::endl;
-			}
-			else
-			{
-				expected_idcode = 0xFFFFFFFFu;
-				fmt = bitstream::format::bit;
-				std::cout << "// Bitstream data @ " << argv[1] << std::endl;
-			}
-		}
-
-		const bitstream bs = bitstream::load(argv[1u], fmt, expected_idcode);
+		const bitstream bs = bitstream::load_bitstream(argv[1u]);
 		std::cout << "// IDCODE: 0x" << std::hex << bs.idcode() << std::dec << std::endl;
 
 		const xilinx_fpga& fpga = xilinx_fpga_by_idcode(bs.idcode());
-		std::cout << "// FPGA: " << fpga.name() << std::endl << std::endl;
+		std::cout << "// FPGA: " << fpga.name() << std::endl;
 
+		// Provide some info on the geometry of the FPGA
+		const auto num_slrs = bs.slrs().size();
+		for (size_t i = 0u; i < num_slrs; ++i)
+		{
+			const auto& slr = bs.slr(i);
+
+			std::cout << "// BITSTREAM: SLR" << std::dec << i;
+
+			if (slr.frame_data_size > 0)
+			{
+				const auto frame_end = slr.frame_data_offset + slr.frame_data_size - 1u;
+
+				std::cout << " frame@0x" << std::hex
+					  << std::setw(8) << std::setfill('0')
+					  << slr.frame_data_offset
+					  << "..0x" << std::setw(8) << std::setfill('0')
+					  << frame_end
+					  << " (" << std::dec
+					  << slr.frame_data_size << " bytes)";
+			}
+
+
+			if (slr.sync_offset != 0xFFFFFFFFu)
+			{
+				std::cout << " sync@0x" << std::hex << std::setw(8) << std::setfill('0')
+					  << slr.sync_offset;
+			}
+
+			if (slr.crc_check_offset != 0xFFFFFFFFu)
+			{
+				std::cout << " crc@0x" << std::hex << std::setw(8) << std::setfill('0')
+					  << slr.crc_check_offset;
+			}
+
+			std::cout << std::dec << std::endl;
+		}
+
+		std::cout << std::endl;
+
+		// And here come the RAMs
 		for (size_t i = 0u; i < fpga.num_brams(bram_category::ramb36); ++i)
 		{
 			const bram& ram = fpga.bram_at(bram_category::ramb36, i);
@@ -99,9 +126,9 @@ int main(int argc, char *argv[])
 				  << "//" << std::endl
 				  << "// SLR" << std::dec << ram.slr() << "+0x"
 				  << std::hex << std::setw(8) << std::setfill('0') << ram_bit_offset
-				  << " (storage @ 0x"
-				  << std::hex << std::setw(8) << std::setfill('0') << ram_storage_offset
-				  << ")" << std::endl << std::endl;
+				  << " storage@0x"
+				  << std::setw(8) << std::setfill('0') << ram_storage_offset
+				  << std::dec << std::endl << std::endl;
 
 			// Dump the RAM word data
 			dump_ram_data(bs, ram, false);

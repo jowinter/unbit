@@ -205,118 +205,128 @@ namespace fpga
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
-			bitstream::bitstream(std::istream& stm, bitstream::format fmt, uint32_t idcode)
+			bitstream::bitstream(std::istream& stm, uint32_t idcode)
 				: data_(load_binary_data(stm))
 			{
-				if (fmt == bitstream::format::bit)
+				// Bitstream format with synchronization word and header commands
+
+				// Step 2: Scan for a type 2 FDRI write packet with the correct number of FDRI data words for an uncompressed
+				//   bitstream.
+				//
+				// Reference: [Xilinx UG470; "Configuration Packets"]
+				//
+				// Algorithm for the frame-data information:
+				// - In the first pass we extract all (sub-)bitstreams (via the parse method)
+				//   (This may contain more streams than we have SLRs)
+				//
+				// - In the second pass, after "parse" has completed, we filter the extract
+				//   SLR info objects (only retaining the sub-bitstreams that actually have an FDRI write
+				//   with frame data as SLRs)
+				//
+
+				// Pass 1: Extract everything
+				slr_info_vector substreams;
+
+				parse(data_.cbegin(), data_.cend(), [&] (const packet& pkt)
 				{
-					// Bitstream format with synchronization word and header commands
-
-					// Step 2: Scan for a type 2 FDRI write packet with the correct number of FDRI data words for an uncompressed
-					//   bitstream.
-					//
-					// Reference: [Xilinx UG470; "Configuration Packets"]
-					//
-					// Algorithm for the frame-data information:
-					// - In the first pass we extract all (sub-)bitstreams (via the parse method)
-					//   (This may contain more streams than we have SLRs)
-					//
-					// - In the second pass, after "parse" has completed, we filter the extract
-					//   SLR info objects (only retaining the sub-bitstreams that actually have an FDRI write
-					//   with frame data as SLRs)
-					//
-
-					// Pass 1: Extract everything
-					std::vector<slr_info> substreams;
-
-					parse(data_.cbegin(), data_.cend(), [&] (const packet& pkt)
+					// Grow the sub-streams array (if needed)
+					if (pkt.stream_index >= substreams.size())
 					{
-						// Grow the sub-streams array (if needed)
-						if (pkt.stream_index >= substreams.size())
-						{
-							substreams.emplace_back();
-						}
+						substreams.emplace_back();
+					}
 
-						slr_info& self = substreams.at(pkt.stream_index);
+					slr_info& self = substreams.at(pkt.stream_index);
 
-						// Latch the sync offset
-						if (self.sync_offset == 0xFFFFFFFFu)
-						{
-							self.sync_offset = pkt.offset;
-						}
-
-						if (pkt.op == 0b10u && pkt.reg == 0b01100u && pkt.word_count > 0u)
-						{
-							// Write to IDCODE register
-							const_byte_iterator pos = pkt.payload_start;
-							uint32_t extracted_idcode = static_cast<uint32_t>(*pos++) << 24u;
-							extracted_idcode |= static_cast<uint32_t>(*pos++) << 16u;
-							extracted_idcode |= static_cast<uint32_t>(*pos++) << 8u;
-							extracted_idcode |= static_cast<uint32_t>(*pos++);
-
-							if ((self.idcode != 0xFFFFFFFFu) && (self.idcode != extracted_idcode))
-							{
-								throw std::invalid_argument("mismatch between actual (extracted from bitstream) and expected idcode values");
-							}
-
-							self.idcode = extracted_idcode;
-						}
-						else if (pkt.op == 0b10u && pkt.reg == 0b00010u && pkt.word_count > 0u)
-						{
-							// Write to FDRI (frame data input) register
-							if (self.frame_data_size > 0u)
-							{
-								throw std::invalid_argument("unsupported bitstream features: found multiple FDRI write commands (compressed bitstream?)");
-							}
-
-							// Record the start and size of the frame data
-							self.frame_data_offset = pkt.storage_offset + 4u;
-							self.frame_data_size   = pkt.payload_end - pkt.payload_start;
-						}
-						else if (pkt.hdr == 0x30000001u)
-						{
-							// Record the CRC command
-							//
-							///! @bug To be replaced by visitor-style rewriter
-							self.crc_check_offset = pkt.offset;
-						}
-
-						// Continue parsing
-						return true;
-					});
-
-					// Pass 2: Retain the substreams with a non-empty FDRI write (uncompressed frame data) as SLR
-					//
-					// NOTE: We currently assume that SLRs always come in proper order (inside the bitstream).
-					slrs_.reserve(substreams.size());
-
-					for (const auto& self : substreams)
+					// Latch the sync offset
+					if (self.sync_offset == 0xFFFFFFFFu)
 					{
+						self.sync_offset = pkt.offset;
+					}
+
+					if (pkt.op == 0b10u && pkt.reg == 0b01100u && pkt.word_count > 0u)
+					{
+						// Write to IDCODE register
+						const_byte_iterator pos = pkt.payload_start;
+						uint32_t extracted_idcode = static_cast<uint32_t>(*pos++) << 24u;
+						extracted_idcode |= static_cast<uint32_t>(*pos++) << 16u;
+						extracted_idcode |= static_cast<uint32_t>(*pos++) << 8u;
+						extracted_idcode |= static_cast<uint32_t>(*pos++);
+
+						if ((self.idcode != 0xFFFFFFFFu) && (self.idcode != extracted_idcode))
+						{
+							throw std::invalid_argument("mismatch between actual (extracted from bitstream) and expected idcode values");
+						}
+
+						self.idcode = extracted_idcode;
+					}
+					else if (pkt.op == 0b10u && pkt.reg == 0b00010u && pkt.word_count > 0u)
+					{
+						// Write to FDRI (frame data input) register
 						if (self.frame_data_size > 0u)
 						{
-							slrs_.emplace_back(self);
+							throw std::invalid_argument("unsupported bitstream features: found multiple FDRI write commands (compressed bitstream?)");
 						}
-					}
 
-					if (slrs_.size() == 0u)
+						// Record the start and size of the frame data
+						self.frame_data_offset = pkt.storage_offset + 4u;
+						self.frame_data_size   = pkt.payload_end - pkt.payload_start;
+					}
+					else if (pkt.hdr == 0x30000001u)
 					{
-						throw std::invalid_argument("unsupported bitstream features: bitstream did not contain any frame data slices");
+						// Record the CRC command
+						//
+						///! @bug To be replaced by visitor-style rewriter
+						self.crc_check_offset = pkt.storage_offset;
+					}
+
+					// Continue parsing
+					return true;
+				});
+
+				// Pass 2: Retain the substreams with a non-empty FDRI write (uncompressed frame data) as SLR
+				//
+				// NOTE: We currently assume that SLRs always come in proper order (inside the bitstream).
+				slrs_.reserve(substreams.size());
+
+				for (const auto& self : substreams)
+				{
+					if (self.frame_data_size > 0u)
+					{
+						slrs_.emplace_back(self);
 					}
 				}
-				else if (fmt == format::raw)
-				{
-					// Raw bitstream data (no leading config packets)
 
-					///! @bug Currently broken for SLR count >1 (should clone size information from a given reference bitstream and/or FPGA)
-					slr_info& slr = slrs_.emplace_back();
-					slr.frame_data_offset = 0u;
-					slr.frame_data_size = data_.size();
-					slr.idcode = idcode;
-				}
-				else
+				if (slrs_.size() == 0u)
 				{
-					// Unsupported/invalid format
-					throw std::invalid_argument("unsupported feature: requested bitstream input format is not supported");
+					throw std::invalid_argument("unsupported bitstream features: bitstream did not contain any frame data slices");
+				}
+			}
+
+			//--------------------------------------------------------------------------------------------------------------------
+			bitstream::bitstream(std::istream& stm, const bitstream& reference)
+				: data_(load_binary_data(stm))
+			{
+				// We replicate the layout information of the reference bitstream
+				//
+				// Assumption: The reference bitstream has its data frames in the correct order. They are placed tightly
+				// in the readback file.
+				//
+				slrs_.reserve(reference.slrs_.size());
+
+				size_t readback_storage_offset = 0u;
+
+				for (const auto& ref : reference.slrs_)
+				{
+					auto& self = slrs_.emplace_back();
+
+					// Translate the frame data
+					//
+					// TODO: Any alignment rules on the readback data?
+					self.frame_data_offset = readback_storage_offset;
+					self.frame_data_size   = ref.frame_data_size;
+					self.idcode            = ref.idcode;
+
+					// CRC check offset and SYNC offset are not provided
 				}
 			}
 
@@ -398,10 +408,17 @@ namespace fpga
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
-			bitstream bitstream::load(const std::string& filename, bitstream::format fmt, uint32_t idcode)
+			bitstream bitstream::load_bitstream(const std::string& filename, uint32_t idcode)
 			{
 				std::ifstream stm(filename, std::ios_base::in | std::ios_base::binary);
-				return bitstream(stm, fmt, idcode);
+				return bitstream(stm, idcode);
+			}
+
+			//--------------------------------------------------------------------------------------------------------------------
+			bitstream bitstream::load_raw(const std::string& filename, const bitstream& reference)
+			{
+				std::ifstream stm(filename, std::ios_base::in | std::ios_base::binary);
+				return bitstream(stm, reference);
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------

@@ -30,16 +30,6 @@ namespace fpga
 				/** Byte data iterator (const) */
 				typedef data_vector::const_iterator const_byte_iterator;
 
-				/** Type of bitstream/configuration data to be loaded */
-				enum format
-				{
-					/** @brief Bitstream (.bit) format with configuration headers */
-					bit = 1u,
-
-					/** @brief Raw (.bin) format only containing the configuration frames */
-					raw = 2u
-				};
-
 				/** Bitstream command packet info */
 				struct packet
 				{
@@ -141,9 +131,14 @@ namespace fpga
 
 				};
 
+				/**
+				 * @brief SLR info vector type
+				 */
+				typedef std::vector<slr_info> slr_info_vector;
+
 			private:
 				/** @brief SLR slices of this bitstream */
-				std::vector<slr_info> slrs_;
+				slr_info_vector slrs_;
 
 				/** @brief In-memory data of the bitstream */
 				data_vector data_;
@@ -154,14 +149,25 @@ namespace fpga
 				 *
 				 * @param[in] filename specifies the name (and path) of the bitstream file to be loaded.
 				 *
-				 * @param[in] fmt specifies the expected bitstream data format.
-				 *
 				 * @param[in] idcode specifies the expected IDCODE value
 				 *   (or 0xFFFFFFFF to indicate that the IDCODE value is to be read from the bitstream data).
 				 *
 				 * @return The loaded bitstream object.
 				 */
-				static bitstream load(const std::string& filename, format fmt, uint32_t idcode = 0xFFFFFFFFu);
+				static bitstream load_bitstream(const std::string& filename, uint32_t idcode = 0xFFFFFFFFu);
+
+
+				/**
+				 * @brief Loads an uncompressed (and unencrypted) bitstream from a readback data file.
+				 *
+				 * @param[in] filename specifies the name (and path) of the readback data file to be loaded.
+				 *
+				 * @param[in] reference specifies a loaded reference bitstream (providing IDCODE and geometry
+				 *   information)
+				 *
+				 * @return The loaded bitstream object.
+				 */
+				static bitstream load_raw(const std::string& filename, const bitstream& reference);
 
 				/**
 				 * @brief Stores an uncompressed (and unencrypted) bitstream to a given file.
@@ -245,12 +251,21 @@ namespace fpga
 				 * @param[in] stm is the input stream to read the bitstream data from. The input stream
 				 *   should be opened in binary mode.
 				 *
-				 * @param[in] fmt specifies the expected bitstream data format.
-				 *
 				 * @param[in] idcode specifies the expected IDCODE value (or 0xFFFFFFFF to indicate
 				 *   that the IDCODE value is to be read from the bitstream data).
 				 */
-				bitstream(std::istream& stm, format fmt, uint32_t idcode = 0xFFFFFFFFu);
+				bitstream(std::istream& stm, uint32_t idcode = 0xFFFFFFFFu);
+
+				/**
+				 * @brief Constructs a bitstream from a given input stream (containing raw readback data).
+				 *
+				 * @param[in] stm is the input stream to read the readback data from. The input stream
+				 *   should be opened in binary mode.
+				 *
+				 * @param[in] reference specifies a compatible reference bitstream (that provides
+				 *   geometry and readback information)
+				 */
+				bitstream(std::istream& stm, const bitstream& reference);
 
 				/**
 				 * @brief Move constructor for bitstream objects.
@@ -264,10 +279,20 @@ namespace fpga
 
 				/**
 				 * @brief Gets an SLR information object.
+				 *
+				 * @param[in] index specifies the zero-based index of the SLR info object.
 				 */
 				inline const slr_info& slr(unsigned slr_index) const
 				{
 					return slrs_.at(slr_index);
+				}
+
+				/**
+				 * @brief Gets a read-only reference to the vector of SLR information objects of this bitstream.
+				 */
+				inline const slr_info_vector& slrs() const
+				{
+					return slrs_;
 				}
 
 				/**

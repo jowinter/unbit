@@ -24,22 +24,22 @@ int main(int argc, char *argv[])
 		if (argc != 4)
 		{
 			std::cerr << "usage: " << argv[0u] << " <result> <bitstream> <readback-file>" << std::endl
-				<< std::endl
-				<< "Substitutes initialization data of BRAM blocks in a given <bitstream> by BRAM content obtained" << std::endl
-				<< "obtained from FPGA readback (read_back_hw_device -bin_file). The resulting bitstream, with substituted"  << std::endl
-				<< "BRAMs is written to <result> and can be used to configure FPGAs (note that this tool currently does not" << std::endl
-				<< "update CRC values)" << std::endl << std::endl
-				<< std::endl;
+				  << std::endl
+				  << "Substitutes initialization data of BRAM blocks in a given <bitstream> by BRAM content obtained" << std::endl
+				  << "obtained from FPGA readback (read_back_hw_device -bin_file). The resulting bitstream, with substituted"  << std::endl
+				  << "BRAMs is written to <result> and can be used to configure FPGAs (note that this tool currently does not" << std::endl
+				  << "update CRC values)" << std::endl << std::endl
+				  << std::endl;
 			return EXIT_FAILURE;
 		}
 
 		// Load the bitstream to be updated
-		bitstream bs = bitstream::load(argv[2u], bitstream::format::bit);
+		bitstream bs = bitstream::load_bitstream(argv[2u]);
 		const xilinx_fpga& fpga = xilinx_fpga_by_idcode(bs.idcode());
 		std::cout << "fpga: " << fpga.name() << std::endl;
 
-		// Load the source RAMs
-		const bitstream brams = bitstream::load(argv[3u], bitstream::format::raw, bs.idcode());
+		// Load the source RAMs (with inference of bitstream properties from the given bitstream)
+		const bitstream brams = bitstream::load_raw(argv[3u], bs);
 
 		std::cout << "substituting brams " << std::flush;
 
