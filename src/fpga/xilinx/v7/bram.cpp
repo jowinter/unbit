@@ -84,8 +84,6 @@ namespace fpga
 					const bool src_value = static_cast<bool>((data[src_byte_index] >> src_bit_shift) & 1u);
 
 					// Inject into the bitstream
-
-					// Extract the source value and update the extracted byte array
 					bits.write_frame_data_bit(dst_bit, src_value, slr_);
 				}
 			}

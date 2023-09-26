@@ -313,18 +313,60 @@ namespace fpga
 				//
 				slrs_.reserve(reference.slrs_.size());
 
-				size_t readback_storage_offset = 0u;
+				// Phase 1: Determine the total configuration frame size.
+				//
+				// Xilinx readback data is structure as follows (for Virtex UltraScale+ - cf. Xilinx UG570):
+				//
+				//  +------------------------+
+				//  | Pipeline               | 10 words for Virtex UltraScale+
+				//  |                        |  0 words for 7-Series
+				//  +------------------------+
+				//  | Pad frame              | 1 frame
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  +------------------------+ <------------------------------ readback_storage_offset (initial)
+				//  | Frame data             | total number of device frames
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  +------------------------+
+				//
+				//
+				// We currently determine the initial readback storage offset based on the SLR sizes and
+				// the size of the readback stream.
+				//
+				///! @todo Fetch this information from the FPGA's description (after refactoring)
 
+				size_t total_frame_data_size = 0u;
+				for (const auto& ref : reference.slrs_)
+				{
+					total_frame_data_size += ref.frame_data_size;
+				}
+
+				if (total_frame_data_size > data_.size() || total_frame_data_size < 4u)
+				{
+					throw std::invalid_argument("frame data size of reference bitstream exceeds storage offset");
+				}
+
+				// Phase 2: Extract the SLR frame data at the end of the device
+				size_t readback_storage_offset = data_.size() - total_frame_data_size;
 				for (const auto& ref : reference.slrs_)
 				{
 					auto& self = slrs_.emplace_back();
 
-					// Translate the frame data
-					//
-					// TODO: Any alignment rules on the readback data?
-					self.frame_data_offset = readback_storage_offset;
-					self.frame_data_size   = ref.frame_data_size;
-					self.idcode            = ref.idcode;
+					// Translate the frame data and offsets
+					self.frame_data_offset   = readback_storage_offset;
+					self.frame_data_size     = ref.frame_data_size;
+					self.idcode              = ref.idcode;
+
+					readback_storage_offset += self.frame_data_size;
 
 					// CRC check offset and SYNC offset are not provided
 				}
