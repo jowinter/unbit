@@ -60,10 +60,12 @@ int main(int argc, char *argv[])
 		std::cout << std::endl;
 
 		// Need to fixup the CRC record (for now we simply kill the CRC command)
-		// HACK: We ought to do this properly ...
-		std::cout << "stripping crc checks (fixme!)" << std::endl;
-		bs.update_crc();
-
+		//
+		// HACK: We ought to do this properly ... for now the unbit-strip-crc-checks tool can
+		// be used to neutralize all CRC checks.
+		std::cout << "warning: crc checks in the result bitstream (if present) need to be fixed up." << std::endl
+			  << "warning: the unbit-strip-crc-checks tool can be used to strip all (sic!) crc" << std::endl
+			  << "warning: check commands from the result (and/or source) bitstream." << std::endl;
 
 		// And store the output
 		std::cout << "writing result bitstream ..." << std::flush;

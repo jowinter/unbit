@@ -343,20 +343,41 @@ namespace fpga
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------
-			void bitstream::update_crc()
+			void bitstream::edit(std::function<void(const packet&,byte_iterator,byte_iterator)> callback)
+			{
+				parse(data_.cbegin(), data_.cend(), [&](const packet& pkt)
+				{
+					// Infer the mutable iterators for the packet
+					byte_iterator pkt_start = data_.begin() + pkt.storage_offset;
+					byte_iterator pkt_end   = pkt_start + 4u + (pkt.payload_end - pkt.payload_start);
+
+					callback(pkt, pkt_start, pkt_end);
+
+					// Always continue
+					return true;
+				});
+			}
+
+			//--------------------------------------------------------------------------------------------------------------------
+			void bitstream::strip_crc_checks()
 			{
 				// FIXME: HACK: We currently "update" the CRC check command into to NOOPs
-				for (auto& self : slrs_)
-				{
-					if (self.crc_check_offset != 0xFFFFFFFFu)
-					{
-						auto cmd = data_.begin() + self.crc_check_offset - 4u;
+				// WORSE HACK: Rewrite all (sic!) CRC check commands into NOPs (by absuing the parser)
+				edit([](const packet& pkt, byte_iterator pos, byte_iterator end) {
 
-						// Replace the CRC command with two NOPs
-						*cmd++ = 0x20u; *cmd++ = 0x00u; *cmd++ = 0x00u; *cmd++ = 0x00u;
-						*cmd++ = 0x20u; *cmd++ = 0x00u; *cmd++ = 0x00u; *cmd++ = 0x00u;
+					if (pkt.hdr == 0x30000001u)
+					{
+						// Sanity check: We expect an 8-byte packet
+						if (end - pos != 8u)
+						{
+							throw std::invalid_argument("invalid CRC command packet (size != 8 byte)");
+						}
+
+						// Replace the CRC (write) command with two NOPs
+						*pos++ = 0x20u; *pos++ = 0x00u; *pos++ = 0x00u; *pos++ = 0x00u;
+						*pos++ = 0x20u; *pos++ = 0x00u; *pos++ = 0x00u; *pos++ = 0x00u;
 					}
-				}
+				});
 			}
 
 			//--------------------------------------------------------------------------------------------------------------------

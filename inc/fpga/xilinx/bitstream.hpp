@@ -355,9 +355,21 @@ namespace fpga
 				}
 
 				/**
-				 * @brief Updates the CRC (if present) of this bitstream.
+				 * @brief In-place rewrite of the bitstream.
+				 *
+				 * @param[in] callback specifies a function for in-place editing of the bitstream.
+				 *   The callback function receives the packet of interest (read-only) and a writeable
+				 *   byte iterator pair spanning the packet boundary.
+				 *
+				 * @note This method internally uses the @ref parser method to scan over the packets
+				 *   in the bitstream and in its sub-streams.
 				 */
-				void update_crc();
+				void edit(std::function<void(const packet&,byte_iterator,byte_iterator)> callback);
+
+				/**
+				 * @brief Strips all CRC check commands from the bitstream.
+				 */
+				void strip_crc_checks();
 
 				/**
 				 * @brief Reads a bit from the frame data area.
