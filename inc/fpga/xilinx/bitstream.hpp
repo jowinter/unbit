@@ -138,6 +138,11 @@ namespace unbit
 			/** @brief In-memory data of the bitstream */
 			data_vector data_;
 
+			/**
+			 * @brief Indicates if this object holds readback data (vs. a full bitstream)
+			 */
+			const bool is_readback_;
+
 		public:
 			/**
 			 * @brief Loads an uncompressed (and unencrypted) bitstream from a given file.
@@ -262,7 +267,8 @@ namespace unbit
 			 *   should be opened in binary mode.
 			 *
 			 * @param[in] reference specifies a compatible reference bitstream (that provides
-			 *   geometry and readback information)
+			 *   geometry and readback information). The reference bitstream can be a full
+			 *   bitstream with configuration data, or a compatible readback data stream.
 			 */
 			bitstream(std::istream& stm, const bitstream& reference);
 
@@ -275,6 +281,14 @@ namespace unbit
 			 * @brief Disposes a bitstream object and its resources.
 			 */
 			~bitstream() noexcept;
+
+			/**
+			 * @brief Tests if this object holds readback data (vs. a full bitstream)
+			 */
+			inline bool is_readback() const
+			{
+				return is_readback_;
+			}
 
 			/**
 			 * @brief Gets an SLR information object.

@@ -215,12 +215,12 @@ namespace unbit
 
 		//------------------------------------------------------------------------------------------------------
 		bitstream::bitstream(std::istream& stm, uint32_t idcode)
-			: data_(load_binary_data(stm))
+			: data_(load_binary_data(stm)), is_readback_(false)
 		{
 			// Bitstream format with synchronization word and header commands
 
-			// Step 2: Scan for a type 2 FDRI write packet with the correct number of FDRI data words for an
-			//   uncompressed bitstream.
+			// Step 2: Scan for a type 2 FDRI write packet with the correct number of FDRI data
+			//   words for an uncompressed bitstream.
 			//
 			// Reference: [Xilinx UG470; "Configuration Packets"]
 			//
@@ -228,9 +228,9 @@ namespace unbit
 			// - In the first pass we extract all (sub-)bitstreams (via the parse method)
 			//   (This may contain more streams than we have SLRs)
 			//
-			// - In the second pass, after "parse" has completed, we filter the extract
-			//   SLR info objects (only retaining the sub-bitstreams that actually have an FDRI write
-			//   with frame data as SLRs)
+			// - In the second pass, after "parse" has completed, we filter the extract SLR info
+			//   objects (only retaining the sub-bitstreams that actually have an FDRI write with
+			//   frame data as SLRs)
 			//
 
 			// Pass 1: Extract everything
@@ -263,7 +263,8 @@ namespace unbit
 
 					if ((self.idcode != 0xFFFFFFFFu) && (self.idcode != extracted_idcode))
 					{
-						throw std::invalid_argument("mismatch between actual (extracted from bitstream) and expected idcode values");
+						throw std::invalid_argument("mismatch between actual (extracted from "
+													"bitstream) and expected idcode values");
 					}
 
 					self.idcode = extracted_idcode;
@@ -273,7 +274,8 @@ namespace unbit
 					// Write to FDRI (frame data input) register
 					if (self.frame_data_size > 0u)
 					{
-						throw std::invalid_argument("unsupported bitstream features: found multiple FDRI write commands (compressed bitstream?)");
+						throw std::invalid_argument("unsupported bitstream features: found multiple"
+													" FDRI write commands (compressed bitstream?)");
 					}
 
 					// Record the start and size of the frame data
@@ -285,9 +287,11 @@ namespace unbit
 				return true;
 			});
 
-			// Pass 2: Retain the substreams with a non-empty FDRI write (uncompressed frame data) as SLR
+			// Pass 2: Retain the substreams with a non-empty FDRI write (uncompressed frame data)
+			//  as SLR
 			//
-			// NOTE: We currently assume that SLRs always come in proper order (inside the bitstream).
+			// NOTE: We currently assume that SLRs always come in proper order (inside the
+			//  bitstream).
 			slrs_.reserve(substreams.size());
 
 			for (const auto& self : substreams)
@@ -307,78 +311,95 @@ namespace unbit
 
 		//--------------------------------------------------------------------------------------------------------------------
 		bitstream::bitstream(std::istream& stm, const bitstream& reference)
-			: data_(load_binary_data(stm))
+			: data_(load_binary_data(stm)), is_readback_(true)
 		{
 			// We replicate the layout information of the reference bitstream
 			//
-			// Assumption: The reference bitstream has its data frames in the correct order. They are placed tightly
-			// in the readback file.
+			// Assumption: The reference bitstream has its data frames in the correct order. They
+			// are placed tightly in the readback file.
 			//
 			slrs_.reserve(reference.slrs_.size());
 
-			// Phase 1: Determine the total configuration frame size.
-			//
-			// Xilinx readback data is structure as follows (for Virtex UltraScale+ - cf. Xilinx UG570):
-			//
-			//  +------------------------+
-			//  | Pipeline               | 10 words for Virtex UltraScale+
-			//  |                        |  0 words for 7-Series
-			//  +------------------------+
-			//  | Pad frame              | 1 frame
-			//  |                        |
-			//  |                        |
-			//  |                        |
-			//  +------------------------+ <------------------------------ readback_storage_offset (initial)
-			//  | Frame data             | total number of device frames
-			//  |                        |
-			//  |                        |
-			//  |                        |
-			//  |                        |
-			//  |                        |
-			//  |                        |
-			//  |                        |
-			//  |                        |
-			//  |                        |
-			//  +------------------------+
-			//
-			//
-			// We currently determine the initial readback storage offset based on the SLR sizes and
-			// the size of the readback stream.
-			//
-			///! @todo Fetch this information from the FPGA's description (after refactoring)
-
-			size_t total_frame_data_size = 0u;
-			for (const auto& ref : reference.slrs_)
+			if (reference.is_readback())
 			{
-				total_frame_data_size += ref.frame_data_size;
+				// Reference bitstream already contains readback data. We can directly copy
+				// the SLRs from the other stream.
+				for (const auto& ref : reference.slrs_)
+				{
+					slrs_.push_back(ref);
+				}
 			}
-
-			if (total_frame_data_size > data_.size() || total_frame_data_size < 4u)
+			else
 			{
-				throw std::invalid_argument("frame data size of reference bitstream exceeds storage offset");
-			}
+				// Reference bitstream is a full bitstream. We need to extract the SLR information.
 
-			// Phase 2: Extract the SLR frame data at the end of the device
-			size_t readback_storage_offset = data_.size() - total_frame_data_size;
-			for (const auto& ref : reference.slrs_)
-			{
-				auto& self = slrs_.emplace_back();
+				// Phase 1: Determine the total configuration frame size.
+				//
+				// Xilinx readback data is structure as follows (for Virtex UltraScale+ - cf. Xilinx
+				// UG570):
+				//
+				//  +------------------------+
+				//  | Pipeline               | 10 words for Virtex UltraScale+
+				//  |                        |  0 words for 7-Series
+				//  +------------------------+
+				//  | Pad frame              | 1 frame
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  +------------------------+ <----------------- readback_storage_offset (initial)
+				//  | Frame data             | total number of device frames
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  |                        |
+				//  +------------------------+
+				//
+				//
+				// We currently determine the initial readback storage offset based on the SLR sizes
+				// and the size of the readback stream.
+				//
+				///! @todo Fetch this information from the FPGA's description (after refactoring)
 
-				// Translate the frame data and offsets
-				self.frame_data_offset   = readback_storage_offset;
-				self.frame_data_size     = ref.frame_data_size;
-				self.idcode              = ref.idcode;
+				size_t total_frame_data_size = 0u;
+				for (const auto& ref : reference.slrs_)
+				{
+					total_frame_data_size += ref.frame_data_size;
+				}
 
-				readback_storage_offset += self.frame_data_size;
+				if (total_frame_data_size > data_.size() || total_frame_data_size < 4u)
+				{
+					throw std::invalid_argument("frame data size of reference bitstream"
+												" exceeds storage offset");
+				}
 
-				// CRC check offset and SYNC offset are not provided
+				// Phase 2: Extract the SLR frame data at the end of the device
+				size_t readback_storage_offset = data_.size() - total_frame_data_size;
+				for (const auto& ref : reference.slrs_)
+				{
+					auto& self = slrs_.emplace_back();
+
+					// Translate the frame data and offsets
+					self.frame_data_offset   = readback_storage_offset;
+					self.frame_data_size     = ref.frame_data_size;
+					self.idcode              = ref.idcode;
+
+					readback_storage_offset += self.frame_data_size;
+
+					// CRC check offset and SYNC offset are not provided
+				}
 			}
 		}
 
 		//------------------------------------------------------------------------------------------
 		bitstream::bitstream(bitstream&& other) noexcept
 			: slrs_(std::move(other.slrs_)),
-			  data_(std::move(other.data_))
+			  data_(std::move(other.data_)),
+			  is_readback_(std::move(other.is_readback_))
 		{
 		}
 
@@ -426,50 +447,51 @@ namespace unbit
 		}
 
 		//------------------------------------------------------------------------------------------
-		bitstream::const_byte_iterator bitstream::config_packets_begin(unsigned slr_index) const
+		bitstream::const_byte_iterator bitstream::config_packets_begin(unsigned slr_idx) const
 		{
 			// Start with the first byte following the sync packet
-			return data_.cbegin() + slr(slr_index).sync_offset;
+			return data_.cbegin() + slr(slr_idx).sync_offset;
 		}
 
 		//------------------------------------------------------------------------------------------
-		bitstream::const_byte_iterator bitstream::config_packets_end(unsigned slr_index) const
+		bitstream::const_byte_iterator bitstream::config_packets_end(unsigned slr_idx) const
 		{
-			// Pathologic cases of (partially corrupted) bitstreams could show 1-3 extra bytes near the end; we
-			// always round down to a lower 4-byte boundary (this guarantees that users of config_packets_begin/end can
-			// alway operate in 4-byte steps without any extra checks).
+			// Pathologic cases of (partially corrupted) bitstreams could show 1-3 extra bytes near
+			// the end; we always round down to a lower 4-byte boundary (this guarantees that users
+			// of config_packets_begin/end can alway operate in 4-byte steps without any extra
+			// checks).
 
-			const size_t max_config_size = data_.size() - slr(slr_index).sync_offset;
+			const size_t max_config_size = data_.size() - slr(slr_idx).sync_offset;
 			const size_t trailing_extra_bytes = max_config_size % 4u;
 			return data_.cbegin() + (max_config_size - trailing_extra_bytes);
 		}
 
 		//------------------------------------------------------------------------------------------
-		bool bitstream::read_frame_data_bit(size_t bit_offset, unsigned slr_index) const
+		bool bitstream::read_frame_data_bit(size_t bit_offset, unsigned slr_idx) const
 		{
 			// Determine and map the source byte offset
 			const size_t src_byte_index = map_frame_data_offset(bit_offset / 8u);
-			check_frame_data_range(src_byte_index, 1u, slr_index);
+			check_frame_data_range(src_byte_index, 1u, slr_idx);
 
-			return static_cast<bool>((data_[src_byte_index + slr(slr_index).frame_data_offset] >> (bit_offset % 8u)) & 1u);
+			return static_cast<bool>((data_[src_byte_index + slr(slr_idx).frame_data_offset] >> (bit_offset % 8u)) & 1u);
 		}
 
 
 		//------------------------------------------------------------------------------------------
-		void bitstream::write_frame_data_bit(size_t bit_offset, bool value, unsigned slr_index)
+		void bitstream::write_frame_data_bit(size_t bit_offset, bool value, unsigned slr_idx)
 		{
 			const size_t dst_byte_index = map_frame_data_offset(bit_offset / 8u);
-			check_frame_data_range(dst_byte_index, 1u, slr_index);
+			check_frame_data_range(dst_byte_index, 1u, slr_idx);
 
 			if (value)
 			{
 				// Set the bit
-				data_[dst_byte_index + slr(slr_index).frame_data_offset] |= (1u << (bit_offset % 8u));
+				data_[dst_byte_index + slr(slr_idx).frame_data_offset] |= (1u << (bit_offset % 8u));
 			}
 			else
 			{
 				// Clear the bit
-				data_[dst_byte_index + slr(slr_index).frame_data_offset] &= ~(1u << (bit_offset % 8u));
+				data_[dst_byte_index + slr(slr_idx).frame_data_offset] &= ~(1u << (bit_offset % 8u));
 			}
 		}
 
@@ -498,7 +520,7 @@ namespace unbit
 		void bitstream::save(std::ostream& f) const
 		{
 			static_assert(sizeof(std::ostream::char_type) == sizeof(uint8_t),
-						  "unsupported host: sizeof(std::ostream::char_type) != sizeof(uint8_t)");
+						  "unsupported: sizeof(std::ostream::char_type) != sizeof(uint8_t)");
 
 			f.write(reinterpret_cast<const std::ostream::char_type*>(data_.data()), data_.size());
 
@@ -531,7 +553,7 @@ namespace unbit
 			bitstream::data_vector raw_data(size);
 			{
 				static_assert(sizeof(std::istream::char_type) == sizeof(uint8_t),
-							  "unsupported host: sizeof(std::istream::char_type) != sizeof(uint8_t)");
+							  "unsupported: sizeof(std::istream::char_type) != sizeof(uint8_t)");
 
 				f.read(reinterpret_cast<std::istream::char_type*>(raw_data.data()), size);
 
@@ -544,10 +566,10 @@ namespace unbit
 
 		//------------------------------------------------------------------------------------------
 		void bitstream::check_frame_data_range(size_t offset, size_t length,
-											   unsigned slr_index) const
+											   unsigned slr_idx) const
 		{
-			if (offset >= slr(slr_index).frame_data_size ||
-				(slr(slr_index).frame_data_size - offset) < length)
+			if (offset >= slr(slr_idx).frame_data_size ||
+				(slr(slr_idx).frame_data_size - offset) < length)
 			{
 				throw std::out_of_range("frame data slice is out of bounds");
 			}
