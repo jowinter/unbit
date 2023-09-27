@@ -2,8 +2,8 @@
  * @file
  * @brief Common infrastructure for Xilinx Series-7 FPGAs
  */
-#ifndef FPGA_XILINX_COMMON_HPP_
-#define FPGA_XILINX_COMMON_HPP_ 1
+#ifndef UNBIT_XILINX_COMMON_HPP_
+#define UNBIT_XILINX_COMMON_HPP_ 1
 
 #include <cstdint>
 #include <cstddef>
@@ -17,7 +17,7 @@
 #include <iosfwd>
 #include <vector>
 
-namespace fpga
+namespace unbit
 {
 	// Pull-in standard types
 	using std::size_t;
@@ -30,45 +30,20 @@ namespace fpga
 	using std::int16_t;
 	using std::int32_t;
 
-	/**
-	 * @brief Optional reference to an object of type T
-	 */
+	/// @brief Optional reference to an object of type T
 	template<typename T>
 	using optional_ref = std::optional<std::reference_wrapper<T>>;
 
-	/**
-	 * @brief Optional reference to an object of type T
-	 */
+	/// @brief Optional reference to an object of type T
 	template<typename T>
 	using optional_const_ref = std::optional<std::reference_wrapper<const T>>;
 
 	namespace xilinx
 	{
-		class xilinx_fpga;
-
-		/**
-		 * @brief Common infrastructure for Xilinx Series-7 FPGAs
-		 */
-		namespace v7
-		{
-			// Forward declarations
-			class bitstream;
-			class bram;
-			class mapper;
-			class ramb36e1;
-			class zynq7;
-		}
-
-		/**
-		 * @brief Infrastructure for Xilinx Virtex UltraScale+ FPGAs
-		 */
-		namespace vup
-		{
-			// Forward declarations
-			class ramb36e1;
-			class virtex_up;
-		};
+		class bitstream;
+		class bram;
+		class fpga;
 	}
 }
 
-#endif // #ifndef FPGA_XILINX_COMMON_HPP_
+#endif // #ifndef UNBIT_XILINX_COMMON_HPP_

@@ -5,16 +5,15 @@
 
 #include "fpga/xilinx/bitstream.hpp"
 #include "fpga/xilinx/bram.hpp"
+#include "fpga/xilinx/fpga.hpp"
 
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 
-using fpga::xilinx::v7::bitstream;
-using fpga::xilinx::v7::bram;
-using fpga::xilinx::v7::bram_category;
-
-#include "fpga_family.hpp"
+using unbit::xilinx::bitstream;
+using unbit::xilinx::bram;
+using unbit::xilinx::bram_category;
 
 //---------------------------------------------------------------------------------------------------------------------
 static void dump_ram_data(const bitstream& bs, const bram& ram, bool is_parity)
@@ -33,14 +32,14 @@ static void dump_ram_data(const bitstream& bs, const bram& ram, bool is_parity)
 		}
 
 		std::cout << (is_parity ? "INITP_" : "INIT_")
-			  << std::hex << std::setw(2) << std::setfill('0') << (line_offset / line_width)
-			  << ": " << std::dec << (line_width * 8u) << "'h";
+				  << std::hex << std::setw(2) << std::setfill('0') << (line_offset / line_width)
+				  << ": " << std::dec << (line_width * 8u) << "'h";
 
 		for (size_t i = 0u; i < line_width; ++i)
 		{
 			// Xilinx INIT/INITP strings use a reversed order
 			std::cout << std::hex << std::setw(2) << std::setfill('0')
-				  << static_cast<unsigned>(line_buf[line_width - i - 1u]);
+					  << static_cast<unsigned>(line_buf[line_width - i - 1u]);
 		}
 
 		std::cout << std::endl;
@@ -55,12 +54,15 @@ int main(int argc, char *argv[])
 		if (argc != 2)
 		{
 			std::cerr << "usage: " << argv[0u] << " <bitstream>" << std::endl
-				  << std::endl
-				  << "note: dumping of raw readback files has been removed from this tool"   << std::endl
-				  << "extraction of bram content is possible by using the bram substitution" << std::endl
-				  << "tool to inject the readback data into a fresh bitstream, followed by use" << std::endl
-				  << "of this tool for extraction of bram content in textual form."
-				  << std::endl << std::endl;
+					  << std::endl
+					  << "note: dumping of raw readback files has been removed from this tool"
+					  << std::endl
+					  << "extraction of bram content is possible by using the bram substitution"
+					  << std::endl
+					  << "tool to inject the readback data into a fresh bitstream, followed by use"
+					  << std::endl
+					  << "of this tool for extraction of bram content in textual form."
+					  << std::endl << std::endl;
 			return EXIT_FAILURE;
 		}
 
@@ -68,7 +70,7 @@ int main(int argc, char *argv[])
 		const bitstream bs = bitstream::load_bitstream(argv[1u]);
 		std::cout << "// IDCODE: 0x" << std::hex << bs.idcode() << std::dec << std::endl;
 
-		const xilinx_fpga& fpga = xilinx_fpga_by_idcode(bs.idcode());
+		const auto& fpga = unbit::xilinx::fpga_by_idcode(bs.idcode());
 		std::cout << "// FPGA: " << fpga.name() << std::endl;
 
 		// Provide some info on the geometry of the FPGA
@@ -84,25 +86,19 @@ int main(int argc, char *argv[])
 				const auto frame_end = slr.frame_data_offset + slr.frame_data_size - 1u;
 
 				std::cout << " frame@0x" << std::hex
-					  << std::setw(8) << std::setfill('0')
-					  << slr.frame_data_offset
-					  << "..0x" << std::setw(8) << std::setfill('0')
-					  << frame_end
-					  << " (" << std::dec
-					  << slr.frame_data_size << " bytes)";
+						  << std::setw(8) << std::setfill('0')
+						  << slr.frame_data_offset
+						  << "..0x" << std::setw(8) << std::setfill('0')
+						  << frame_end
+						  << " (" << std::dec
+						  << slr.frame_data_size << " bytes)";
 			}
 
 
 			if (slr.sync_offset != 0xFFFFFFFFu)
 			{
 				std::cout << " sync@0x" << std::hex << std::setw(8) << std::setfill('0')
-					  << slr.sync_offset;
-			}
-
-			if (slr.crc_check_offset != 0xFFFFFFFFu)
-			{
-				std::cout << " crc@0x" << std::hex << std::setw(8) << std::setfill('0')
-					  << slr.crc_check_offset;
+						  << slr.sync_offset;
 			}
 
 			std::cout << std::dec << std::endl;
@@ -122,13 +118,13 @@ int main(int argc, char *argv[])
 
 
 			std::cout << "//" << std::endl
-				  << "// " << ram << std::endl
-				  << "//" << std::endl
-				  << "// SLR" << std::dec << ram.slr() << "+0x"
-				  << std::hex << std::setw(8) << std::setfill('0') << ram_bit_offset
-				  << " storage@0x"
-				  << std::setw(8) << std::setfill('0') << ram_storage_offset
-				  << std::dec << std::endl << std::endl;
+					  << "// " << ram << std::endl
+					  << "//" << std::endl
+					  << "// SLR" << std::dec << ram.slr() << "+0x"
+					  << std::hex << std::setw(8) << std::setfill('0') << ram_bit_offset
+					  << " storage@0x"
+					  << std::setw(8) << std::setfill('0') << ram_storage_offset
+					  << std::dec << std::endl << std::endl;
 
 			// Dump the RAM word data
 			dump_ram_data(bs, ram, false);

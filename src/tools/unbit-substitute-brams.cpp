@@ -5,16 +5,15 @@
 
 #include "fpga/xilinx/bitstream.hpp"
 #include "fpga/xilinx/bram.hpp"
+#include "fpga/xilinx/fpga.hpp"
 
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 
-using fpga::xilinx::v7::bitstream;
-using fpga::xilinx::v7::bram;
-using fpga::xilinx::v7::bram_category;
-
-#include "fpga_family.hpp"
+using unbit::xilinx::bitstream;
+using unbit::xilinx::bram;
+using unbit::xilinx::bram_category;
 
 //---------------------------------------------------------------------------------------------------------------------
 int main(int argc, char *argv[])
@@ -35,7 +34,8 @@ int main(int argc, char *argv[])
 
 		// Load the bitstream to be updated
 		bitstream bs = bitstream::load_bitstream(argv[2u]);
-		const xilinx_fpga& fpga = xilinx_fpga_by_idcode(bs.idcode());
+		
+		const auto& fpga = unbit::xilinx::fpga_by_idcode(bs.idcode());
 		std::cout << "fpga: " << fpga.name() << std::endl;
 
 		// Load the source RAMs (with inference of bitstream properties from the given bitstream)

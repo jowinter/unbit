@@ -5,29 +5,26 @@
 #ifndef FPGA_XILINX_ZYNQ7_HPP_
 #define FPGA_XILINX_ZYNQ7_HPP_ 1
 
-#include "xilinx_fpga.hpp"
+#include "fpga.hpp"
 
 #include <array>
 #include <string>
 
-namespace fpga
+namespace unbit
 {
 	namespace xilinx
 	{
-		/**
-		 * @brief Common infrastructure for Xilinx Series-7 FPGAs
-		 */
 		namespace v7
 		{
-			//--------------------------------------------------------------------------------------------------------------------
+			//--------------------------------------------------------------------------------------
 			/**
 			 * @brief Description of a Zynq-7000 FPGA device
 			 */
-			class zynq7 : public xilinx_fpga
+			class zynq7 : public fpga
 			{
 			protected:
 				/**
-				* @brief Constructs a Zynq-7 device.
+				 * @brief Constructs a Zynq-7 device.
 				 */
 				zynq7(const std::string& name, uint32_t idcode, size_t num_brams);
 
@@ -59,7 +56,7 @@ namespace fpga
 				static const zynq7& get_by_idcode(uint32_t idcode);
 			};
 
-			//--------------------------------------------------------------------------------------------------------------------
+			//--------------------------------------------------------------------------------------
 			/**
 			 * @brief Detail implementation of a Zynq-7 variant
 			 */
@@ -83,7 +80,8 @@ namespace fpga
 				 */
 				template<std::size_t... I>
 				static inline const std::array<ramb18e1, sizeof...(I)>
-				make_ramb18e1_aliases(const std::array<ramb36e1, sizeof...(I) / 2u>& brams, std::index_sequence<I...>)
+				make_ramb18e1_aliases(const std::array<ramb36e1, sizeof...(I) / 2u>& brams,
+									  std::index_sequence<I...>)
 				{
 					return std::array<ramb18e1, sizeof...(I)> {
 						ramb18e1 { brams[I / 2u], (I % 2u != 0u) }...
@@ -95,8 +93,8 @@ namespace fpga
 				 * @brief Constructs a Zynq-7 variant
 				 */
 				zynq7_variant(const std::string& name, const std::array<ramb36e1, NumBrams>& brams)
-					: zynq7(name, IdCode, NumBrams), brams_(brams),
-					  brams_18_(make_ramb18e1_aliases(brams, std::make_index_sequence<2u * NumBrams> {}))
+					: zynq7(name, IdCode, NumBrams), brams_(brams), brams_18_(
+						make_ramb18e1_aliases(brams, std::make_index_sequence<2u * NumBrams> {}))
 				{
 				}
 
@@ -122,7 +120,7 @@ namespace fpga
 						return brams_18_.at(index);
 
 					default:
-						throw std::invalid_argument("selected block ram category is not support zynq-7 device");
+						throw std::invalid_argument("unsupported block ram category");
 					}
 				}
 
@@ -136,7 +134,7 @@ namespace fpga
 				}
 			};
 
-			//--------------------------------------------------------------------------------------------------------------------
+			//--------------------------------------------------------------------------------------
 			// XC7Z010
 			//
 			struct xc7z010 final
@@ -154,7 +152,7 @@ namespace fpga
 				static const zynq7& get();
 			};
 
-			//--------------------------------------------------------------------------------------------------------------------
+			//--------------------------------------------------------------------------------------
 			// XC7Z015
 			//
 			struct xc7z015 final
@@ -172,7 +170,7 @@ namespace fpga
 				static const zynq7& get();
 			};
 
-			//--------------------------------------------------------------------------------------------------------------------
+			//--------------------------------------------------------------------------------------
 			// XC7Z020
 			//
 			struct xc7z020 final

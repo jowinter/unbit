@@ -1,63 +1,27 @@
 /**
  * @file
- * @brief Common infrastructure for Xilinx Series-7 FPGAs
- *
- * @bug HIGHLY EXPERIMENTAL CODE (READ: HACK!)
+ * @brief Virtex UltraScale+ FPGAs
  */
-#ifndef FPGA_XILINX_VUP_HPP_
-#define FPGA_XILINX_VUP_HPP_ 1
+#ifndef UNBIT_XILINX_VUP_HPP_
+#define UNBIT_XILINX_VUP_HPP_ 1
 
-#include "xilinx_fpga.hpp"
+#include "fpga.hpp"
 
-#include <array>
-#include <string>
-
-namespace fpga
+namespace unbit
 {
 	namespace xilinx
 	{
-		/**
-		 * @brief Common infrastructure for Xilinx Virtex UltraScale+ FPGAs
-		 */
 		namespace vup
 		{
-			// We reuse the Virtex-7 bitstream, bram, etc. classes (for now)
-			using v7::bitstream;
-			using v7::bram;
-			using v7::bram_category;
-
-			//--------------------------------------------------------------------------------------------------------------------
-			/**
-			 * @brief Description of a RAMB36E2 block RAM tile (as found on Virtex UltraScale+ devices)
-			 */
-			class ramb36e2 final : public bram
-			{
-			public:
-				/**
-				 * @brief Construct a RAMB36E1 block RAM tile.
-				 */
-				ramb36e2(unsigned x, unsigned y, size_t bitstream_offset, unsigned slr = 0u);
-
-				/**
-				 * @brief Disposes a RAMB36E1 block RAM tile.
-				 */
-				~ramb36e2();
-
-			public:
-				const std::string& primitive() const override;
-
-				size_t map_to_bitstream(size_t bit_addr, bool is_parity) const override;
-			};
-
-			//--------------------------------------------------------------------------------------------------------------------
+			//--------------------------------------------------------------------------------------
 			/**
 			 * @brief Description of a Virtex UltraScale+ FPGA device
 			 */
-			class virtex_up : public xilinx_fpga
+			class virtex_up : public fpga
 			{
 			protected:
 				/**
-				* @brief Constructs a Virtex UltraScale+ device.
+				 * @brief Constructs a Virtex UltraScale+ device.
 				 */
 				virtex_up(const std::string& name, uint32_t idcode, size_t num_brams);
 
@@ -87,7 +51,7 @@ namespace fpga
 				static const virtex_up& get_by_idcode(uint32_t idcode);
 			};
 
-			//--------------------------------------------------------------------------------------------------------------------
+			//--------------------------------------------------------------------------------------
 			/**
 			 * @brief Detail implementation of a Virtex UltraScale+ variant
 			 */
@@ -104,7 +68,8 @@ namespace fpga
 				/**
 				 * @brief Constructs a Zynq-7 variant
 				 */
-				virtex_up_variant(const std::string& name, const std::array<ramb36e2, NumBrams>& brams)
+				virtex_up_variant(const std::string& name,
+								  const std::array<ramb36e2, NumBrams>& brams)
 					: virtex_up(name, IdCode, NumBrams), brams_(brams)
 				{
 				}
@@ -128,7 +93,7 @@ namespace fpga
 						return brams_.at(index);
 
 					default:
-						throw std::invalid_argument("selected block ram category is not supported on this virtex ultrascale+ device");
+						throw std::invalid_argument("unsupported block ram category");
 					}
 				}
 
@@ -142,7 +107,7 @@ namespace fpga
 				}
 			};
 
-			//--------------------------------------------------------------------------------------------------------------------
+			//--------------------------------------------------------------------------------------
 			// XCVU9P
 			//
 			struct xcvu9p final
@@ -163,4 +128,4 @@ namespace fpga
 	}
 }
 
-#endif // #ifndef FPGA_XILINX_VUP_HPP_
+#endif // #ifndef UNBIT_XILINX_VUP_HPP_

@@ -3,17 +3,18 @@
 #
 
 ADD_LIBRARY(unbit_xilinx STATIC
-  v7/bitstream.cpp
-  v7/bitlayout.cpp
-  v7/bram.cpp
-  v7/xilinx_fpga.cpp
-  v7/ramb36e1.cpp
+  bitstream.cpp
+  bram.cpp
+  ramb36e1.cpp
+  ramb18e1.cpp
+  ramb36e2.cpp
+  fpga.cpp
+
   v7/zynq7.cpp
   v7/xc7z010.cpp
   v7/xc7z015.cpp
   v7/xc7z020.cpp
-  v7/ramb18e1.cpp
-  vup/ramb36e2.cpp
+
   vup/virtex_up.cpp
   vup/xcvu9p.cpp)
 

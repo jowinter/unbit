@@ -9,7 +9,7 @@
 #include <iomanip>
 #include <fstream>
 
-using fpga::xilinx::v7::bitstream;
+using unbit::xilinx::bitstream;
 
 //---------------------------------------------------------------------------------------------------------------------
 // Well-known registers

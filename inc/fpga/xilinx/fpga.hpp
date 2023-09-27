@@ -2,8 +2,8 @@
  * @file
  * @brief Common infrastructure for Xilinx Series-7 (and alike) FPGAs
  */
-#ifndef FPGA_XILINX_FPGA_HPP_
-#define FPGA_XILINX_FPGA_HPP_ 1
+#ifndef UNBIT_XILINX_FPGA_HPP_
+#define UNBIT_XILINX_FPGA_HPP_ 1
 
 #include "common.hpp"
 #include "bram.hpp"
@@ -11,17 +11,14 @@
 #include <array>
 #include <string>
 
-namespace fpga
+namespace unbit
 {
 	namespace xilinx
 	{
-		using v7::bram;
-		using v7::bram_category;
-
 		/**
 		 * @brief Common baseline for Xilinx Virtex-7 FPGAs (and lookalikes)
 		 */
-		class xilinx_fpga
+		class fpga
 		{
 		protected:
 			/**
@@ -43,12 +40,12 @@ namespace fpga
 			/**
 			 * @brief Constructs a Zynq-7 device.
 			 */
-			xilinx_fpga(const std::string& name, uint32_t idcode, size_t num_brams);
+			fpga(const std::string& name, uint32_t idcode, size_t num_brams);
 
 			/**
 			 * @brief Disposes a Zynq-7 device.
 			 */
-			virtual ~xilinx_fpga() noexcept = 0;
+			virtual ~fpga() noexcept = 0;
 
 		public:
 			/**
@@ -84,13 +81,18 @@ namespace fpga
 
 		private:
 			// Non-copyable
-			xilinx_fpga(xilinx_fpga&) = delete;
-			xilinx_fpga& operator=(xilinx_fpga&) = delete;
+			fpga(fpga&) = delete;
+			fpga& operator=(fpga&) = delete;
 		};
 
-		///! @todo Currently a hack (refctoring in progress)
-		extern const xilinx_fpga& xilinx_fpga_by_idcode(const uint32_t idcode);
+		//------------------------------------------------------------------------------------------
+		/**
+		 * @brief Gets a known Xlinx FPGA by its IDCODE.
+		 *
+		 * @param[in] idcode is the IDCODE of the FPGA.
+		 */
+		extern const fpga& fpga_by_idcode(const uint32_t idcode);
 	}
 }
 
-#endif // FPGA_XILINX_FPGA_HPP_
+#endif // UNBIT_XILINX_FPGA_HPP_
