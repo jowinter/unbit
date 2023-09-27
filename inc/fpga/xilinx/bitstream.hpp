@@ -141,7 +141,7 @@ namespace unbit
 			/**
 			 * @brief Indicates if this object holds readback data (vs. a full bitstream)
 			 */
-			const bool is_readback_;
+			bool is_readback_;
 
 		public:
 			/**
@@ -152,10 +152,23 @@ namespace unbit
 			 * @param[in] idcode specifies the expected IDCODE value (or 0xFFFFFFFF to indicate that
 			 *   the IDCODE value is to be read from the bitstream data).
 			 *
+			 * @param[in] accept_readback indicates if "readback" bitstreams shall be accepted
+			 *   by this method.
+			 *
+			 *   Regular configuration bitstreams use FDRI command packets to feed the FPGA with
+			 *   frame data. "Readback" bitstreams (*.rbb) are generated as (temporary) output files
+			 *   by Xilinx bitstream generation tooling, when the user request generation generation
+			 *   of readback files (*.rbt, *.msd). FPGA configuration frames in a readback bitstream
+			 *   use FDRO command packets to encapsulate the (expected) readback data.
+			 *
+			 *   The @p accept_readback paramater controls whether the @ref #load_bitstream method
+			 *   accepts such "readback" bitstreams or not (default: reject).
+			 *
 			 * @return The loaded bitstream object.
 			 */
 			static bitstream load_bitstream(const std::string& filename,
-											uint32_t idcode = 0xFFFFFFFFu);
+											uint32_t idcode = 0xFFFFFFFFu,
+											bool accept_readback = false);
 
 			/**
 			 * @brief Loads an uncompressed (and unencrypted) bitstream from a readback data file.
@@ -178,6 +191,13 @@ namespace unbit
 			 * @param[in] bs specifies the bitstream to be dumped.
 			 */
 			static void save(const std::string& filename, const bitstream& bs);
+
+			/**
+			 * @brief Stores an uncompressed as raw readback data file.
+			 *
+			 * @param[in] filename specifies the destiation filename (and path).
+			 */
+			static void save_as_readback(const std::string& filename, const bitstream& bs);
 
 			/**
 			 * @brief Parses the packets in a bitstream (all substreams are parsed).
@@ -256,8 +276,11 @@ namespace unbit
 			 *
 			 * @param[in] idcode specifies the expected IDCODE value (or 0xFFFFFFFF to indicate that
 			 *   the IDCODE value is to be read from the bitstream data).
+			 *
+			 * @param[in] accept_readback indicates if readback bitstream shall be accepted as
+			 *   input format (in addition to normal config bitstreams).
 			 */
-			bitstream(std::istream& stm, uint32_t idcode = 0xFFFFFFFFu);
+			bitstream(std::istream& stm, uint32_t idcode = 0xFFFFFFFFu, bool readback = false);
 
 			/**
 			 * @brief Constructs a bitstream from a given input stream (containing raw readback
@@ -415,11 +438,20 @@ namespace unbit
 			}
 
 			/**
-			 * @brief Sabes this bitstream to disk.
+			 * @brief Saves this bitstream to disk.
 			 *
 			 * @param[in,out] stm specifies the output stream to save this bitstream to.
 			 */
 			void save(std::ostream& stm) const;
+
+
+			/**
+			 * @brief Saves this bitstream as raw readback data file.
+			 *
+			 * @param[in] filename specifies the name (and path) of the readback data file to be
+			 *  created
+			 */
+			void save_as_readback(std::ostream& stm) const;
 
 		private:
 			/**
