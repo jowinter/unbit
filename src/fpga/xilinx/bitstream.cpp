@@ -3,6 +3,7 @@
  * @brief Bitstream manipulation
  */
 #include "fpga/xilinx/bitstream.hpp"
+#include "fpga/xilinx/fpga.hpp"
 
 #include <algorithm>
 #include <array>
@@ -239,6 +240,8 @@ namespace unbit
 			// Pass 1: Extract everything
 			slr_info_vector substreams;
 
+			uint32_t main_idcode = 0xFFFFFFFFu;
+
 			parse(data_.cbegin(), data_.cend(), [&] (const packet& pkt)
 			{
 				// Grow the sub-streams array (if needed)
@@ -271,6 +274,12 @@ namespace unbit
 					}
 
 					self.idcode = extracted_idcode;
+
+					// Track the "main" IDCODE
+					if (main_idcode == 0xFFFFFFFFu)
+					{
+						main_idcode = extracted_idcode;
+					}
 				}
 				else if (pkt.op == 0b10u && pkt.reg == 0b00010u && pkt.word_count > 0u)
 				{
@@ -320,9 +329,27 @@ namespace unbit
 													" mix of FDRI/FDRO in one bitstream");
 					}
 
+
 					// Record the start and size of the frame data
 					self.frame_data_offset = pkt.storage_offset + 4u;
 					self.frame_data_size   = pkt.payload_end - pkt.payload_start;
+
+					// Adjust for the FPGA specific readback offset (skip pipeline words
+					// and padding frame)
+					//
+					// NOTE: The different SLRs have different IDCODEs. We use the IDCODE of
+					// the "main" SLR to identify the full FPGA.
+					//
+					const auto& fpga = unbit::xilinx::fpga_by_idcode(main_idcode);
+					const size_t readback_offset = fpga.frame_size();
+					if (self.frame_data_size < readback_offset)
+					{
+						throw std::invalid_argument("bad frame data size of readback frame");
+					}
+
+					// Strip the padding frame
+					self.frame_data_offset += readback_offset;
+					self.frame_data_size   -= readback_offset;
 
 					// We have seen some frame data
 					is_readback_ = true;
@@ -355,7 +382,7 @@ namespace unbit
 			}
 		}
 
-		//--------------------------------------------------------------------------------------------------------------------
+		//------------------------------------------------------------------------------------------
 		bitstream::bitstream(std::istream& stm, const bitstream& reference)
 			: data_(load_binary_data(stm)), is_readback_(true)
 		{
@@ -423,13 +450,21 @@ namespace unbit
 												" exceeds storage offset");
 				}
 
+				// Storage offsets (pipline, pad frame, ...) have already been adjusted
+				// in incoming bitstream.
+				size_t readback_storage_offset = 0;
+
 				// Phase 2: Extract the SLR frame data at the end of the device
-				size_t readback_storage_offset = data_.size() - total_frame_data_size;
 				for (const auto& ref : reference.slrs_)
 				{
 					auto& self = slrs_.emplace_back();
 
 					// Translate the frame data and offsets
+					//
+					// We adjust the SLR's frame data offset (and size) to exclude the
+					// pipeline words and padding frame. This allows users of the bitstream
+					// class to handle readback data in a simple and uniform manner.
+					//
 					self.frame_data_offset   = readback_storage_offset;
 					self.frame_data_size     = ref.frame_data_size;
 					self.idcode              = ref.idcode;

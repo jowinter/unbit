@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
-			std::cout << "// CONFIG: READBACK BITSTREAM" << std::endl;
+			std::cout << "// TYPE: CONFIG BITSTREAM" << std::endl;
 		}
 
 		const auto& fpga = unbit::xilinx::fpga_by_idcode(bs.idcode());
