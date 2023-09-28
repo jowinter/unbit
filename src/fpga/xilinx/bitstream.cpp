@@ -453,8 +453,12 @@ namespace unbit
 				// Storage offsets (pipline, pad frame, ...) have already been adjusted
 				// in incoming bitstream.
 				const auto& fpga = unbit::xilinx::fpga_by_idcode(reference.idcode());
-				size_t readback_storage_offset = 20;
-				
+
+				const size_t front_padding = 20u + fpga.readback_offset();
+				const size_t back_padding  = 16u + front_padding;
+
+				size_t readback_storage_offset  = 0u;
+
 				// Phase 2: Extract the SLR frame data at the end of the device
 				for (const auto& ref : reference.slrs_)
 				{
@@ -466,16 +470,17 @@ namespace unbit
 					// pipeline words and padding frame. This allows users of the bitstream
 					// class to handle readback data in a simple and uniform manner.
 					//
-					const size_t readback_offset = fpga.readback_offset();		
 
-					///!@bug Somehow works out for SLR0 but fails on SLR0=>SLR1 ...
-					self.frame_data_offset   = readback_storage_offset + readback_offset;
-					self.frame_data_size     = ref.frame_data_size     - readback_offset;
+					readback_storage_offset  += front_padding;
+
+					///!@todo Check frame data size ...
+					self.frame_data_offset   = readback_storage_offset;
+					self.frame_data_size     = ref.frame_data_size - front_padding;
 					self.idcode              = ref.idcode;
 
+					// Skip data and the back padding (of this frame)
 					readback_storage_offset += self.frame_data_size;
-
-					// CRC check offset and SYNC offset are not provided
+					readback_storage_offset += back_padding;
 				}
 			}
 		}
@@ -685,7 +690,7 @@ namespace unbit
 
 			///! @bug WIP: Code below is trial to make VC9UP frames fit. Structure is not
 			///!   fully understood (yet).
-			
+
 			// Readback files have a device family depedent number of padding words, followed
 			// by a padding frame, in front of the actual frame data.
 			//
@@ -712,7 +717,7 @@ namespace unbit
 					f.write(reinterpret_cast<const std::istream::char_type*>(
 								inter_frame_sync.data()), inter_frame_sync.size());
 				}
-				
+
 				// Write to padding
 				f.write(reinterpret_cast<const std::istream::char_type*>(padding.data()),
 						padding.size());
