@@ -36,11 +36,22 @@ namespace unbit
 			 */
 			const size_t num_brams_;
 
+			/**
+			 * @brief Size of a configuration frame
+			 */
+			const size_t frame_size_;
+
+			/**
+			 * @brief Size of the "pipeline" padding at the start of readback.
+			 */
+			const size_t readback_offset_;
+
 		protected:
 			/**
 			 * @brief Constructs a Zynq-7 device.
 			 */
-			fpga(const std::string& name, uint32_t idcode, size_t num_brams);
+			fpga(const std::string& name, uint32_t idcode, size_t num_brams, size_t frame_size,
+				 size_t readback_offset);
 
 			/**
 			 * @brief Disposes a Zynq-7 device.
@@ -62,6 +73,22 @@ namespace unbit
 			inline uint32_t idcode() const
 			{
 				return idcode_;
+			}
+
+			/**
+			 * @brief Gets the size of a single configuration frame (in bytes)
+			 */
+			inline uint32_t frame_size() const
+			{
+				return frame_size_;
+			}
+
+			/**
+			 * @brief Gets the number of leading "extra" bytes in raw readback data.
+			 */
+			inline uint32_t readback_offset() const
+			{
+				return readback_offset_;
 			}
 
 			/**

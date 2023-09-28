@@ -38,14 +38,16 @@ namespace unbit
 			/**
 			 * @brief Array of known UltraScale+ variants.
 			 */
-			static const std::array<virtex_up_known_variant, 3u> virtex_up_variants
+			static const std::array<virtex_up_known_variant, 1u> virtex_up_variants
 			{
 				virtex_up_known_variant { &xcvu9p::match, &xcvu9p::get }, // XCVU9P
 			};
 
 			//--------------------------------------------------------------------------------------
 			virtex_up::virtex_up(const std::string& name, uint32_t idcode, size_t num_brams)
-				:  fpga(name, idcode, num_brams)
+				:  fpga(name, idcode, num_brams,
+						93u * 4u,         // 93 words per frame
+						(20u + 93u) * 4u) // 20 pipeline words + 1 frame readfback offset
 			{
 			}
 
