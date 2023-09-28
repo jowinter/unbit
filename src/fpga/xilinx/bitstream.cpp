@@ -452,8 +452,9 @@ namespace unbit
 
 				// Storage offsets (pipline, pad frame, ...) have already been adjusted
 				// in incoming bitstream.
-				size_t readback_storage_offset = 0;
-
+				const auto& fpga = unbit::xilinx::fpga_by_idcode(reference.idcode());
+				size_t readback_storage_offset = 20;
+				
 				// Phase 2: Extract the SLR frame data at the end of the device
 				for (const auto& ref : reference.slrs_)
 				{
@@ -465,8 +466,11 @@ namespace unbit
 					// pipeline words and padding frame. This allows users of the bitstream
 					// class to handle readback data in a simple and uniform manner.
 					//
-					self.frame_data_offset   = readback_storage_offset;
-					self.frame_data_size     = ref.frame_data_size;
+					const size_t readback_offset = fpga.readback_offset();		
+
+					///!@bug Somehow works out for SLR0 but fails on SLR0=>SLR1 ...
+					self.frame_data_offset   = readback_storage_offset + readback_offset;
+					self.frame_data_size     = ref.frame_data_size     - readback_offset;
 					self.idcode              = ref.idcode;
 
 					readback_storage_offset += self.frame_data_size;
@@ -689,9 +693,8 @@ namespace unbit
 			//
 			// NOTE: We currently assume that all SLRs have the same structure
 			const auto& fpga = unbit::xilinx::fpga_by_idcode(idcode());
-			const std::vector<uint8_t> padding(fpga.frame_size() + 6*16 + 4, 0u);
 
-			const std::vector<uint8_t> zero_frame(fpga.frame_size(), 0u);
+			const std::vector<uint8_t> padding(fpga.readback_offset() + 20, 0u);
 
 			const std::array<uint8_t, 16u> inter_frame_sync
 			{
@@ -719,9 +722,6 @@ namespace unbit
 
 				f.write(reinterpret_cast<const std::istream::char_type*>(start),
 						frame_data_size(slr_index));
-
-				f.write(reinterpret_cast<const std::istream::char_type*>(zero_frame.data()),
-						zero_frame.size());
 			}
 
 

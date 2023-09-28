@@ -147,6 +147,11 @@ static bool dump_packet(const bitstream::packet& pkt)
 		std::cout << " type2 op=0x" << std::setw(1) << std::setfill('0') << pkt.op;
 	}
 
+	if (pkt.word_count > 0u)
+	{
+		std::cout << " nwords=" <<  std::dec << pkt.word_count;
+	}
+
 	// Omit the hexdump of "slave?" packets (as we will parse into it).
 	if (pkt.op == 0b10 && pkt.reg == 0b11110 && pkt.word_count > 0u)
 	{
