@@ -563,6 +563,15 @@ namespace unbit
 				ramb36e2 {  11, 176, 0x0CB1AC20, 2 }, ramb36e2 {  11, 177, 0x0CB1AD10, 2 }, ramb36e2 {  11, 178, 0x0CB1AE00, 2 }, ramb36e2 {  11, 179, 0x0CB1AEF0, 2 },
 			};
 
+			// XCVU9P
+			//
+			// The XCVU9P consists of a master FPGA and two slave FPGA slices:
+			// - SLR0 (IDCODE 0x4b31093) - Master
+			// - SLR1 (IDCODE 0x4b22039) - SLR1 Slave
+			// - SLR2 (IDCODE 0x4b24039) - SLR2 Slave
+			//
+			// TODO: We currently only match the master slice.
+			//
 			typedef virtex_up_variant<0x4b31093u, 2160u> xcvu9p_variant;
 
 			//--------------------------------------------------------------------------------------

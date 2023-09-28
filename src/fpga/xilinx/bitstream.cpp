@@ -678,20 +678,50 @@ namespace unbit
 			static_assert(sizeof(std::ostream::char_type) == sizeof(uint8_t),
 						  "unsupported: sizeof(std::ostream::char_type) != sizeof(uint8_t)");
 
+
+			///! @bug WIP: Code below is trial to make VC9UP frames fit. Structure is not
+			///!   fully understood (yet).
+			
 			// Readback files have a device family depedent number of padding words, followed
 			// by a padding frame, in front of the actual frame data.
+			//
+			// Q: Is this "dynamically" defined by the instructions in the RBB file?
+			//
+			// NOTE: We currently assume that all SLRs have the same structure
+			const auto& fpga = unbit::xilinx::fpga_by_idcode(idcode());
+			const std::vector<uint8_t> padding(fpga.frame_size() + 6*16 + 4, 0u);
 
-			///! @todo Emit the device depdendent extra data
+			const std::vector<uint8_t> zero_frame(fpga.frame_size(), 0u);
 
-			///! @todo Generate a padidng frame (given the frame size of the first slr)
+			const std::array<uint8_t, 16u> inter_frame_sync
+			{
+				0xAA, 0x99, 0x55, 0x66,
+				0xAA, 0x99, 0x55, 0x66,
+				0xAA, 0x99, 0x55, 0x66,
+				0xAA, 0x99, 0x55, 0x66
+			};
 
 			// Emit the SLRs (one after another)
 			for (size_t slr_index = 0u; slr_index < slrs_.size(); ++slr_index)
 			{
+				if (slr_index > 0)
+				{
+					f.write(reinterpret_cast<const std::istream::char_type*>(
+								inter_frame_sync.data()), inter_frame_sync.size());
+				}
+				
+				// Write to padding
+				f.write(reinterpret_cast<const std::istream::char_type*>(padding.data()),
+						padding.size());
+
+				// Write the actual frame data
 				const auto start = data_.data() + frame_data_offset(slr_index);
 
 				f.write(reinterpret_cast<const std::istream::char_type*>(start),
 						frame_data_size(slr_index));
+
+				f.write(reinterpret_cast<const std::istream::char_type*>(zero_frame.data()),
+						zero_frame.size());
 			}
 
 
