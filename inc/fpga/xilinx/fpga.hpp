@@ -46,12 +46,30 @@ namespace unbit
 			 */
 			const size_t readback_offset_;
 
+			/**
+			 * @brief Size of the padding in front of the frame data in a raw readback stream.
+			 */
+			const size_t front_padding_;
+
+			/**
+			 * @brief Size of the padding after the frame data in a raw readback stream.
+			 *
+			 * @note This value includes the size required by the back sync words.
+			 */
+			const size_t back_padding_;
+
+			/**
+			 * @brief Number of extra sync words after the back padding in a raw readback stream.
+			 */
+			const size_t back_sync_words_;
+
 		protected:
 			/**
-			 * @brief Constructs a Zynq-7 device.
+			 * @brief Constructs a generic device.
 			 */
 			fpga(const std::string& name, uint32_t idcode, size_t num_brams, size_t frame_size,
-				 size_t readback_offset);
+				 size_t readback_offset, size_t front_padding, size_t back_padding,
+				 size_t back_sync_words);
 
 			/**
 			 * @brief Disposes a Zynq-7 device.
@@ -84,11 +102,39 @@ namespace unbit
 			}
 
 			/**
-			 * @brief Gets the number of leading "extra" bytes in raw readback data.
+			 * @brief Gets the number of leading "extra" bytes in front of raw readback data in
+			 *   the payload of an FDRO stream.
 			 */
 			inline uint32_t readback_offset() const
 			{
 				return readback_offset_;
+			}
+
+			/**
+			 * @brief Gets the size of extra padding in front of frame data in a raw readback
+			 *   stream.
+			 */
+			inline uint32_t front_padding() const
+			{
+				return front_padding_;
+			}
+
+			/**
+			 * @brief Gets the size of extra padding after frame data in a raw readback
+			 *   stream (excluding the back sync).
+			 */
+			inline uint32_t back_padding() const
+			{
+				return back_padding_;
+			}
+
+			/**
+			 * @brief Gets the number of extra sync words after the back padding in a raw readback
+			 *   stream.
+			 */
+			inline uint32_t back_sync_words() const
+			{
+				return back_sync_words_;
 			}
 
 			/**

@@ -46,7 +46,10 @@ namespace unbit
 			zynq7::zynq7(const std::string& name, uint32_t idcode, size_t num_brams)
 				:  fpga(name, idcode, num_brams,
 						101u * 4u, // 101 words per frame
-						101u * 4u) // 1 frame readback offset
+						101u * 4u, // 1 frame readback offset
+						101u * 4u, // Front and back padding have only been tested for devices
+						0u * 4u,   // with a single SLR yet.
+						0u)        // -"-
 			{
 			}
 

@@ -39,9 +39,13 @@ namespace unbit
 
 		//------------------------------------------------------------------------------------------
 		fpga::fpga(const std::string& name, uint32_t idcode, size_t num_brams,
-				   size_t frame_size, size_t readback_offset)
+				   size_t frame_size, size_t readback_offset,
+				   size_t front_padding, size_t back_padding,
+				   size_t back_sync_words)
 			:  name_(name), idcode_(idcode), num_brams_(num_brams),
-			   frame_size_(frame_size), readback_offset_(readback_offset)
+			   frame_size_(frame_size), readback_offset_(readback_offset),
+			   front_padding_(front_padding), back_padding_(back_padding),
+			   back_sync_words_(back_sync_words)
 		{
 		}
 

@@ -454,9 +454,6 @@ namespace unbit
 				// in incoming bitstream.
 				const auto& fpga = unbit::xilinx::fpga_by_idcode(reference.idcode());
 
-				const size_t front_padding = 20u + fpga.readback_offset();
-				const size_t back_padding  = 16u + front_padding;
-
 				size_t readback_storage_offset  = 0u;
 
 				// Phase 2: Extract the SLR frame data at the end of the device
@@ -471,16 +468,18 @@ namespace unbit
 					// class to handle readback data in a simple and uniform manner.
 					//
 
-					readback_storage_offset  += front_padding;
+					// Skip over the front padding
+					readback_storage_offset  += fpga.front_padding();
 
+					// Extract the data part
 					///!@todo Check frame data size ...
 					self.frame_data_offset   = readback_storage_offset;
-					self.frame_data_size     = ref.frame_data_size - front_padding;
+					self.frame_data_size     = ref.frame_data_size - fpga.front_padding();
 					self.idcode              = ref.idcode;
-
-					// Skip data and the back padding (of this frame)
 					readback_storage_offset += self.frame_data_size;
-					readback_storage_offset += back_padding;
+
+					// Skip data the back padding (of this frame)
+					readback_storage_offset += fpga.back_padding();
 				}
 			}
 		}
@@ -699,32 +698,25 @@ namespace unbit
 			// NOTE: We currently assume that all SLRs have the same structure
 			const auto& fpga = unbit::xilinx::fpga_by_idcode(idcode());
 
-			const std::vector<uint8_t> padding(fpga.readback_offset() + 20, 0u);
-
-			const std::array<uint8_t, 16u> inter_frame_sync
-			{
-				0xAA, 0x99, 0x55, 0x66,
-				0xAA, 0x99, 0x55, 0x66,
-				0xAA, 0x99, 0x55, 0x66,
-				0xAA, 0x99, 0x55, 0x66
-			};
+			const std::vector<uint8_t> pad_front(fpga.front_padding(), 0u);
+			const std::vector<uint8_t> pad_back(fpga.back_padding(), 0u);
 
 			// Emit the SLRs (one after another)
 			for (size_t slr_index = 0u; slr_index < slrs_.size(); ++slr_index)
 			{
-				if (slr_index > 0)
+				// Back sync words (of previous frame)
+				for (size_t i = 0u; (slr_index > 0u) && (i < fpga.back_sync_words()); ++i)
 				{
-					f.write(reinterpret_cast<const std::istream::char_type*>(
-								inter_frame_sync.data()), inter_frame_sync.size());
+					f.write(reinterpret_cast<const std::istream::char_type*>(SYNC_PATTERN.data()),
+							SYNC_PATTERN.size());
 				}
 
-				// Write to padding
-				f.write(reinterpret_cast<const std::istream::char_type*>(padding.data()),
-						padding.size());
+				// Write to (front) padding
+				f.write(reinterpret_cast<const std::istream::char_type*>(pad_front.data()),
+						pad_front.size());
 
 				// Write the actual frame data
 				const auto start = data_.data() + frame_data_offset(slr_index);
-
 				f.write(reinterpret_cast<const std::istream::char_type*>(start),
 						frame_data_size(slr_index));
 			}

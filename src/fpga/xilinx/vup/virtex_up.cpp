@@ -46,8 +46,12 @@ namespace unbit
 			//--------------------------------------------------------------------------------------
 			virtex_up::virtex_up(const std::string& name, uint32_t idcode, size_t num_brams)
 				:  fpga(name, idcode, num_brams,
-						93u * 4u,         // 93 words per frame
-						(20u + 93u) * 4u) // 20 pipeline words + 1 frame readfback offset
+						(            93u     ) * 4u, // 93 words per frame
+						(20u       + 93u     ) * 4u, // 20 pipeline words + 1 frame
+						(5u  + 20u + 93u     ) * 4u, // (vcu9p) readback offset + 5 cmd?
+						(5u  + 20u + 93u + 4u) * 4u, // (vcu9p) readback offset + 5 cmd? + 4 sync
+						4u)                     // (vcu9p) 4 sync words after back padding
+
 			{
 			}
 
