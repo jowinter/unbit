@@ -66,9 +66,17 @@ int main(int argc, char *argv[])
 			return EXIT_FAILURE;
 		}
 
-		// Check for an explicitly given IDCODE
-		const bitstream bs = bitstream::load_bitstream(argv[1u]);
+		const bitstream bs = bitstream::load_bitstream(argv[1u], 0xFFFFFFFFu, true);
 		std::cout << "// IDCODE: 0x" << std::hex << bs.idcode() << std::dec << std::endl;
+
+		if (bs.is_readback())
+		{
+			std::cout << "// TYPE: READBACK BITSTREAM" << std::endl;
+		}
+		else
+		{
+			std::cout << "// CONFIG: READBACK BITSTREAM" << std::endl;
+		}
 
 		const auto& fpga = unbit::xilinx::fpga_by_idcode(bs.idcode());
 		std::cout << "// FPGA: " << fpga.name() << std::endl;
