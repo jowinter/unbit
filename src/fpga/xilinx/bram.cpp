@@ -63,6 +63,15 @@ namespace unbit
 		}
 
 		//------------------------------------------------------------------------------------------
+		bool bram::extract_bit(const bitstream& bits, size_t offset, bool extract_parity) const
+		{
+			const size_t src_bit = map_to_bitstream(offset, extract_parity);
+
+			// Extract the source value and update the extracted byte array
+			return bits.read_frame_data_bit(src_bit, slr_);
+		}
+
+		//------------------------------------------------------------------------------------------
 		void bram::inject(bitstream& bits, bool inject_parity,
 						  const std::vector<uint8_t>& data) const
 		{
@@ -88,6 +97,15 @@ namespace unbit
 				// Inject into the bitstream
 				bits.write_frame_data_bit(dst_bit, src_value, slr_);
 			}
+		}
+
+		//------------------------------------------------------------------------------------------
+		void bram::inject_bit(bitstream& bits, size_t offset, bool inject_parity, bool value)
+		{
+			const size_t dst_bit = map_to_bitstream(offset, inject_parity);
+
+			// Inject into the bitstream
+			bits.write_frame_data_bit(dst_bit, value, slr_);
 		}
 
 		//------------------------------------------------------------------------------------------

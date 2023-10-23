@@ -19,3 +19,8 @@ ADD_LIBRARY(unbit_xilinx STATIC
   vup/xcvu9p.cpp)
 
 TARGET_INCLUDE_DIRECTORIES(unbit_xilinx PRIVATE "${PROJECT_SOURCE_DIR}/external")
+
+IF (UNBIT_ENABLE_MMI)
+  TARGET_SOURCES(unbit_xilinx        PRIVATE mmi.cpp mmi_cpu_memory_map.cpp mmi_cpu_memory_region.cpp)
+  TARGET_LINK_LIBRARIES(unbit_xilinx PRIVATE unbit_xml)
+ENDIF ()

@@ -30,6 +30,17 @@ INCLUDE_DIRECTORIES(
 	$<INSTALL_INTERFACE:include/unbit>
 )
 
+OPTION (UNBIT_ENABLE_MMI "Enable (experimental) support for Xilinx Memory Map Information (MMI) files (requires libxml2)" TRUE)
+
+IF (UNBIT_ENABLE_MMI)
+  # libxml2 support (needed for parsing Xilinx MMI files)
+  FIND_PACKAGE(LibXml2)
+
+  IF (NOT LIBXML2_FOUND)
+	MESSAGE(ERROR "Xilinx Memory Map Information (MMI) support requires libxml2")
+  ENDIF()
+ENDIF()
+
 # Build projects in subdirectories
 ADD_SUBDIRECTORY(src)
 
@@ -41,3 +52,10 @@ INSTALL(TARGETS unbit-dump-bitstream unbit-dump-brams unbit-substitute-brams unb
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib)
+
+IF (UNBIT_ENABLE_MMI)
+  INSTALL(TARGETS unbit-dump-image unbit_xml
+	RUNTIME DESTINATION bin
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib)
+ENDIF()

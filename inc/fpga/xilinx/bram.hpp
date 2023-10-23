@@ -136,6 +136,20 @@ namespace unbit
 			std::vector<uint8_t> extract(const bitstream& bits, bool extract_parity) const;
 
 			/**
+			 * @brief Extracts a single data or parity of this block RAM from a bitstream.
+			 *
+			 * @param[in] bits specifies the source bitstream.
+			 *
+			 * @param[in] offset is the bit offset into the data (or parity) space of the RAM.
+			 *
+			 * @param[in] extract_parity indicates whether data (false) or parity (true) data shall
+			 *  be extracted.
+			 *
+			 * @return The bit value of the extracted bit.
+			 */
+			bool extract_bit(const bitstream& bits, size_t offset, bool extract_parity) const;
+
+			/**
 			 * @brief Injects data or parity bits for this block RAM into a bitstream.
 			 *
 			 * @param[in,out] bits specifies the target bitstream.
@@ -146,6 +160,20 @@ namespace unbit
 			 * @param[in] data specifies the byte vector to be injected.
 			 */
 			void inject(bitstream& bits, bool inject_parity, const std::vector<uint8_t>& data) const;
+
+			/**
+			 * @brief Injects a single data or parity bits of this block RAM into a bitstream.
+			 *
+			 * @param[in,out] bits specifies the target bitstream.
+			 *
+			 * @param[in] offset is the bit offset into the data (or parity) space of the RAM.
+			 *
+			 * @param[in] inject_parity indicates whether data (false) or parity (true) data shall
+			 *  be injected.
+			 *
+			 * @param[in] data specifies the byte vector to be injected.
+			 */
+			void inject_bit(bitstream& bits, size_t offset, bool inject_parity, bool value);
 
 			/**
 			 * @brief Gets the SLR index of this RAM tile.

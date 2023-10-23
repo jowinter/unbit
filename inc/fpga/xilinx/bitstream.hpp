@@ -2,7 +2,7 @@
  * @file
  * @brief Common infrastructure for Xilinx FPGAs
  */
-#ifndef FPGA_XILINX_BITSTREAM_HPP_
+#ifndef UNBIT_XILINX_BITSTREAM_HPP_
 #define UNBIT_XILINX_BITSTREAM_HPP_ 1
 
 #include "common.hpp"
