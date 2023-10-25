@@ -86,7 +86,13 @@ via the `xpm_memory_sprom` macro in HDL code:
 	  <AddressRange Begin="0" End="16383" />
 	  <Parity       ON="false" NumBits="0" />
 	 </BitLane>
-	 <!-- Remaining MMI file omitted for simplicity -->
+	 <!--
+		Remaining MMI file omitted for simplicity
+		...
+		(Here be bitlanes)
+		...
+	  -->
+	</BusBlock>
   </AddressSpace>
  </Processor>
 </MemoryInfo>
