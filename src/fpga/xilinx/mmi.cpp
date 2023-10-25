@@ -18,7 +18,7 @@ namespace unbit
 			static auto get_processor_node(xml_doc& xdoc, const std::string& instance)
 			{
 				auto xnode = xpath_context(xdoc).query("/MemInfo/Processor[@InstPath=\"" +
-													   instance + "]");
+													   instance + "\"]");
 				if (0u == xnode.node_count())
 				{
 					std::string msg = "failed to locate processor instance '" +
