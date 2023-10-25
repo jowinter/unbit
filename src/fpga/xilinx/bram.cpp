@@ -100,7 +100,7 @@ namespace unbit
 		}
 
 		//------------------------------------------------------------------------------------------
-		void bram::inject_bit(bitstream& bits, size_t offset, bool inject_parity, bool value)
+		void bram::inject_bit(bitstream& bits, size_t offset, bool inject_parity, bool value) const
 		{
 			const size_t dst_bit = map_to_bitstream(offset, inject_parity);
 

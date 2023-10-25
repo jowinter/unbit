@@ -357,6 +357,22 @@ namespace unbit
 				// And extract
 				return bram.extract_bit(bs, std::get<1>(mapping), std::get<2>(mapping));
 			}
+
+			//-------------------------------------------------------------------------------------
+			void cpu_memory_map::write_bit(bitstream& bs, const fpga& fpga,
+										   uint64_t bit_addr, bool value) const
+			{
+				// Map the bit to a block RAM, then extract
+				const auto mapping = map_bit_address(bit_addr);
+
+				// Resolve the block RAM
+				const auto& bram = fpga.bram_by_loc(std::get<0>(mapping).type,
+													std::get<0>(mapping).x,
+													std::get<0>(mapping).y);
+
+				// And inject
+				bram.inject_bit(bs, std::get<1>(mapping), std::get<2>(mapping), value);
+			}
 		}
 	}
 }

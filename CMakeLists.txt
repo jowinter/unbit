@@ -48,13 +48,13 @@ ADD_SUBDIRECTORY(src)
 # Install setup
 #
 INSTALL(DIRECTORY inc/ DESTINATION include/unbit FILES_MATCHING PATTERN "*.hpp")
-INSTALL(TARGETS unbit-dump-bitstream unbit-dump-brams unbit-substitute-brams unbit-strip-crc-checks unbit_xilinx
+INSTALL(TARGETS unbit-dump-bitstream unbit-dump-brams unbit-substitute-brams unbit-strip-crc-checks unbit_xilinx unbit_ihex
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib)
 
 IF (UNBIT_ENABLE_MMI)
-  INSTALL(TARGETS unbit-dump-image unbit_xml
+  INSTALL(TARGETS unbit-dump-image unbit-inject-image unbit_xml
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib)

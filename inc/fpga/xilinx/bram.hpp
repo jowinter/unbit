@@ -173,7 +173,7 @@ namespace unbit
 			 *
 			 * @param[in] data specifies the byte vector to be injected.
 			 */
-			void inject_bit(bitstream& bits, size_t offset, bool inject_parity, bool value);
+			void inject_bit(bitstream& bits, size_t offset, bool inject_parity, bool value) const;
 
 			/**
 			 * @brief Gets the SLR index of this RAM tile.

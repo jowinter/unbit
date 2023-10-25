@@ -155,6 +155,12 @@ namespace unbit
 				 */
 				virtual bool read_bit(const fpga& fpga, const bitstream& bs,
 									  uint64_t bit_addr) const override;
+
+				/**
+				 * @brief Writes a single bit
+				 */
+				virtual void write_bit(bitstream& bs, const fpga& fpga,
+									   uint64_t bit_addr, bool value) const override;
 			protected:
 				/**
 				 * @brief Maps a bit address to an address.

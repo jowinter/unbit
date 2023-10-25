@@ -8,4 +8,7 @@ ADD_EXECUTABLE(unbit-bitstream-to-readback  unbit-bitstream-to-readback.cpp)
 
 IF (UNBIT_ENABLE_MMI)
   ADD_EXECUTABLE(unbit-dump-image           unbit-dump-image.cpp)
+
+  ADD_EXECUTABLE(unbit-inject-image         unbit-inject-image.cpp)
+  TARGET_LINK_LIBRARIES(unbit-inject-image  PRIVATE unbit_ihex)
 ENDIF ()

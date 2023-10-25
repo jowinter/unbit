@@ -125,6 +125,37 @@ namespace unbit
 				virtual uint8_t read_byte(const fpga& fpga, const bitstream& bs,
 										  uint64_t byte_addr) const;
 
+				/**
+				 * @brief Writes a single bit.
+				 *
+				 * @param[in] fpga is the FPGA type for block RAM translation.
+				 *
+				 * @param[in,out] bs is the source/destination bit stream.
+				 *
+				 * @param[in] bit_addr is the address of the bit in CPU address space.
+				 *
+				 * @param[in] value is the bit value to be written.
+				 */
+				virtual void write_bit(bitstream& bs, const fpga& fpga,
+									   uint64_t bit_addr, bool value) const = 0;
+
+				/**
+				 * @brief Writes an 8-bit byte.
+				 *
+				 * @param[in,out] bs is the source/destination bit stream.
+				 *
+				 * @param[in] fpga is the FPGA type for block RAM translation.
+				 *
+				 * @param[in] byte_addr is the byte address in CPU address space.
+				 *
+				 * @param[in] value is the byte value to be written
+				 *
+				 * @note The default implementation of this method delegates to @ref write_bit
+				 *   for bit-level access.
+				 */
+				virtual void write_byte(bitstream& bs, const fpga& fpga,
+										uint64_t byte_addr, uint8_t value) const;
+
 			public:
 				/**
 				 * @brief Loads a memory map from a given file.

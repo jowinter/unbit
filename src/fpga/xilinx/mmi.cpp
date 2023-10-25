@@ -62,6 +62,17 @@ namespace unbit
 
 				return value;
 			}
+
+			//-------------------------------------------------------------------------------------
+			void memory_map::write_byte(bitstream& bs, const fpga& fpga,
+										uint64_t byte_addr, uint8_t value) const
+			{
+				for (size_t i = 0u; i < 8u; ++i)
+				{
+					const bool bit_value = !!((value >> i) & 1u);
+					write_bit(bs, fpga, byte_addr * 8u + i, bit_value);
+				}
+			}
 		}
 	}
 }
