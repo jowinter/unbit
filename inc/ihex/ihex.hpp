@@ -5,6 +5,7 @@
 #ifndef UNBIT_IHEX_HPP_
 #define UNBIT_IHEX_HPP_ 1
 
+#include <cstdint>
 #include <functional>
 #include <istream>
 #include <string>
