@@ -42,7 +42,7 @@ namespace unbit
 				/**
 				 * @brief Gets a block RAM (RAMB36E2) by its index.
 				 */
-				virtual const bram& bram_at(bram_category category, size_t index) const = 0;
+				virtual const bram& bram_at(bram_category category, size_t index) const override = 0;
 
 			public:
 				/**
