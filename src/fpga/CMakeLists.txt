@@ -1,1 +1,1 @@
-ADD_SUBDIRECTORY(xilinx/old)
+ADD_SUBDIRECTORY(xilinx)
