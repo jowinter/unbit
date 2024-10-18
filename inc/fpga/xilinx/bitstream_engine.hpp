@@ -60,12 +60,15 @@ namespace unbit
 			 * @return The total number of bitstream data words that have been completely processed
 			*    by the bitstream processor.
 			 */
-			std::size_t process(const uint32_t *cfg_data, std::size_t cfg_len, bool is_synced = false);
+			virtual std::size_t process(const uint32_t *cfg_data, std::size_t cfg_len, bool is_synced = false);
 
 		protected:
 			/**
 			 * @brief Configuration write packet
-			 * 
+			 *
+			 * @param cfg_w_offset is the offset (in words) of the TYPE1 configuration packet in the configuration
+			 *   stream that triggered this event.
+			 *
 			 * @param reg is the configuration register to write.
 			 *
 			 * @param data points to the start of paramater data of this write.
@@ -75,11 +78,14 @@ namespace unbit
 			 * @return True if the packet was processed compeltely, or false if the
 			 *   bitstream processing should stop at this packet.
 			 */
-			virtual bool on_config_write(uint32_t reg, const uint32_t *data, std::size_t len);
+			virtual bool on_config_write(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len);
 
 			/**
 			 * @brief Configuration read packet (might be seen in readback streams).
 			 * 
+			 * @param cfg_w_offset is the offset (in words) of the TYPE1 configuration packet in the configuration
+			 *   stream that triggered this event.
+			 *
 			 * @param reg is the configuration register to write.
 			 *
 			 * @param data points to the start of paramater data of this write.
@@ -89,11 +95,14 @@ namespace unbit
 			 * @return True if the packet was processed compeltely, or false if the
 			 *   bitstream processing should stop at this packet.
 			 */
-			virtual bool on_config_read(uint32_t reg, const uint32_t *data, std::size_t len);
+			virtual bool on_config_read(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len);
 
 			/**
 			 * @brief Reserved configuration packet (op=0).
 			 * 
+			 * @param cfg_w_offset is the offset (in words) of the TYPE1 configuration packet in the configuration
+			 *   stream that triggered this event.
+			 *
 			 * @param reg is the configuration register to write.
 			 *
 			 * @param data points to the start of paramater data of this write.
@@ -103,11 +112,14 @@ namespace unbit
 			 * @return True if the packet was processed compeltely, or false if the
 			 *   bitstream processing should stop at this packet.
 			 */
-			virtual bool on_config_rsvd(uint32_t reg, const uint32_t *data, std::size_t len);
+			virtual bool on_config_rsvd(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len);
 
 			/**
 			 * @brief NOP configuration packet.
 			 * 
+			 * @param cfg_w_offset is the offset (in words) of the TYPE1 configuration packet in the configuration
+			 *   stream that triggered this event.
+			 *
 			 * @param reg is the configuration register to write.
 			 *
 			 * @param data points to the start of paramater data of this write.
@@ -117,7 +129,7 @@ namespace unbit
 			 * @return True if the packet was processed compeltely, or false if the
 			 *   bitstream processing should stop at this packet.
 			 */
-			virtual bool on_config_nop(uint32_t reg, const uint32_t *data, std::size_t len);
+			virtual bool on_config_nop(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len);
 
 		private:
 			/**
@@ -143,6 +155,9 @@ namespace unbit
 			/**
 			 * @brief Extract a packet from the data word stream.
 			 * 
+			 * @param cfg_w_offset is the offset (in words) of the configuration packet
+			 *   in the configuration being parsed.
+             *
 			 * @param pos indicates the current position (packet header word) in the
 			 *   data word stream.
 			 *
@@ -156,7 +171,7 @@ namespace unbit
 			 *   that processing of the (current) stream should be stopped without
 			 *   advancing to following packets.
 			 */
-			std::size_t parse_packet(const uint32_t *pos, std::size_t len);
+			std::size_t parse_packet(std::size_t cfg_w_offset, const uint32_t *pos, std::size_t len);
 		};
 	}
 }

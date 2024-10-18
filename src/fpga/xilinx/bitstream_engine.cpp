@@ -55,7 +55,7 @@ namespace unbit
 			// Process packets (until the stream is exhausted, or the callback request an abort)
 			while (pos != end)
 			{
-				std::size_t n_pkt = parse_packet(pos, end - pos);
+				std::size_t n_pkt = parse_packet(pos - cfg_data, pos, end - pos);
 				if (n_pkt == 0)
 				{
 					// Packet callback requested the scan to stop.
@@ -96,7 +96,7 @@ namespace unbit
 		}
 
 		//------------------------------------------------------------------------------------------
-		std::size_t bitstream_engine::parse_packet(const uint32_t *pos, std::size_t len)
+		std::size_t bitstream_engine::parse_packet(std::size_t cfg_w_offset, const uint32_t *pos, std::size_t len)
 		{
 			const uint32_t *const start = pos;
 			const uint32_t *const end = pos + len;
@@ -187,12 +187,11 @@ namespace unbit
 
 			//
 			// TYPE-1 packet or TYPE-1/TYPE-2 pait is complete.
-			//			
-
+			//
 			if (pkt_op == 0b00)
 			{
 				// 0b00 NOOP - Nothing to do
-				if (!on_config_nop(pkt_reg, data, word_count))
+				if (!on_config_nop(cfg_w_offset, pkt_reg, data, word_count))
 				{
 					return 0;
 				}
@@ -200,7 +199,7 @@ namespace unbit
 			else if (pkt_op == 0b10)
 			{
 				// 0b10 WRITE
-				if (!on_config_write(pkt_reg, data, word_count))
+				if (!on_config_write(cfg_w_offset, pkt_reg, data, word_count))
 				{
 					return 0;
 				}
@@ -208,7 +207,7 @@ namespace unbit
 			else if (pkt_op == 0b01)
 			{
 				// 0b01 READ
-				if (!on_config_read(pkt_reg, data, word_count))
+				if (!on_config_read(cfg_w_offset, pkt_reg, data, word_count))
 				{
 					return 0;
 				}
@@ -216,7 +215,7 @@ namespace unbit
 			else
 			{
 				// 0b00 RESERVED (Malformed bitstream; sync packets have been handled above)
-				if (!on_config_rsvd(pkt_reg, data, word_count))
+				if (!on_config_rsvd(cfg_w_offset, pkt_reg, data, word_count))
 				{
 					return 0;
 				}
@@ -227,28 +226,28 @@ namespace unbit
 		}
 
 		//------------------------------------------------------------------------------------------
-		bool bitstream_engine::on_config_write(uint32_t reg, const uint32_t *data, std::size_t len)
+		bool bitstream_engine::on_config_write(std::size_t cfg_offset, uint32_t reg, const uint32_t *data, std::size_t len)
 		{
 			// Discard unhandled packets by default.
 			return true;
 		}
 
 		//------------------------------------------------------------------------------------------
-		bool bitstream_engine::on_config_read(uint32_t reg, const uint32_t *data, std::size_t len)
+		bool bitstream_engine::on_config_read(std::size_t cfg_offset, uint32_t reg, const uint32_t *data, std::size_t len)
 		{
 			// Reject unhandled read packets by default
 			return false;
 		}
 
 		//------------------------------------------------------------------------------------------
-		bool bitstream_engine::on_config_nop(uint32_t reg, const uint32_t *data, std::size_t len)
+		bool bitstream_engine::on_config_nop(std::size_t cfg_offset, uint32_t reg, const uint32_t *data, std::size_t len)
 		{
 			// Discard NOP packets by default.
 			return true;
 		}
 
 		//------------------------------------------------------------------------------------------
-		bool bitstream_engine::on_config_rsvd(uint32_t reg, const uint32_t *data, std::size_t len)
+		bool bitstream_engine::on_config_rsvd(std::size_t cfg_offset, uint32_t reg, const uint32_t *data, std::size_t len)
 		{
 			// Reject reserved packets by default
 			return false;

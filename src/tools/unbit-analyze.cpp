@@ -66,18 +66,23 @@ namespace
 {
 	class unbit_analyzer final : public bitstream_engine
 	{
+	private:
+		uint32_t slr_cfg_index;
+		std::size_t slr_offset;
+
 	public:
 		unbit_analyzer();
 		~unbit_analyzer();
 
-		virtual bool on_config_write(uint32_t reg, const uint32_t *data, std::size_t len) override;
-		virtual bool on_config_read(uint32_t reg, const uint32_t *data, std::size_t len) override;
-		virtual bool on_config_rsvd(uint32_t reg, const uint32_t *data, std::size_t len) override;
-		virtual bool on_config_nop(uint32_t reg, const uint32_t *data, std::size_t len) override;
+		virtual bool on_config_write(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len) override;
+		virtual bool on_config_read(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len) override;
+		virtual bool on_config_rsvd(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len) override;
+		virtual bool on_config_nop(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len) override;
 	};
 
 	//-----------------------------------------------------------------------------------------------------------------
 	unbit_analyzer::unbit_analyzer()
+		: slr_cfg_index(0), slr_offset(0)
 	{
 	}
 
@@ -87,28 +92,38 @@ namespace
 	}
 
 	//-----------------------------------------------------------------------------------------------------------------
-	bool unbit_analyzer::on_config_write(uint32_t reg, const uint32_t *data, std::size_t len)
+	bool unbit_analyzer::on_config_write(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len)
 	{
-		std::cout << "WRITE REG(" << reg << ")" << " LEN=" << len << std::endl;
+		std::cout << (slr_offset + cfg_w_offset) << " SLR(" << slr_cfg_index << ") WRITE REG(" << reg << ")" << " LEN=" << len << std::endl;
+
+		// For testing: Start a new SLR if we see a RSVD30 write
+		if (reg == 30)
+		{
+			slr_cfg_index += 1u;
+			slr_offset += cfg_w_offset;
+			process(data, len, false);
+			slr_offset -= cfg_w_offset;
+			slr_cfg_index -= 1u;
+		}
 		return true;
 	}
 
 	//-----------------------------------------------------------------------------------------------------------------
-	bool unbit_analyzer::on_config_read(uint32_t reg, const uint32_t *data, std::size_t len)
+	bool unbit_analyzer::on_config_read(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len)
 	{
-		std::cout << "READ REG(" << reg << ")" << std::endl;
+		std::cout <<  (slr_offset + cfg_w_offset) << " SLR(" << slr_cfg_index << ") READ REG(" << reg << ")" << std::endl;
 		return true;
 	}
 
 	//-----------------------------------------------------------------------------------------------------------------
-	bool unbit_analyzer::on_config_rsvd(uint32_t reg, const uint32_t *data, std::size_t len)
+	bool unbit_analyzer::on_config_rsvd(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len)
 	{
-		std::cout << "RSVD REG(" << reg << ")" << std::endl;
+		std::cout <<  (slr_offset + cfg_w_offset) << " SLR(" << slr_cfg_index << ") RSVD REG(" << reg << ")" << std::endl;
 		return true;
 	}
 
 	//-----------------------------------------------------------------------------------------------------------------
-	bool unbit_analyzer::on_config_nop(uint32_t reg, const uint32_t *data, std::size_t len)
+	bool unbit_analyzer::on_config_nop(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len)
 	{
 		// std::cout << "NOP" << std::endl;
 		return true;
