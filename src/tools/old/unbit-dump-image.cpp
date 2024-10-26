@@ -3,12 +3,12 @@
  * @brief Proof-of-concept tool to dump a (processor) image from block RAMs in a Xilinx FPGA.
  */
 
-#include "fpga/old/xilinx/bitstream.hpp"
-#include "fpga/old/xilinx/bram.hpp"
-#include "fpga/old/xilinx/mmi.hpp"
-#include "fpga/old/xilinx/fpga.hpp"
+#include "unbit/fpga/old/xilinx/bitstream.hpp"
+#include "unbit/fpga/old/xilinx/bram.hpp"
+#include "unbit/fpga/old/xilinx/mmi.hpp"
+#include "unbit/fpga/old/xilinx/fpga.hpp"
 
-#include "xml/xml.hpp"
+#include "unbit/xml/xml.hpp"
 
 #include <iostream>
 #include <iomanip>

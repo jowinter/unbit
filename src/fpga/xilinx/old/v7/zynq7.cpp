@@ -2,7 +2,7 @@
  * @file
  * @brief Infrastructure for Xilinx Zynq-7000 FPGAs
  */
-#include "fpga/old/xilinx/zynq7.hpp"
+#include "unbit/fpga/old/xilinx/zynq7.hpp"
 
 namespace unbit
 {

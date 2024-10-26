@@ -3,7 +3,7 @@
  * @brief Proof-of-concept tool to dump the structure of a Xilinx 7-series bitstream
  */
 
-#include "fpga/old/xilinx/bitstream.hpp"
+#include "unbit/fpga/old/xilinx/bitstream.hpp"
 
 #include <iostream>
 #include <iomanip>

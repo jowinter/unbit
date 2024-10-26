@@ -2,7 +2,7 @@
  * @file
  * @brief Bitstream analysis tool for Xilinx 7-Series and Virtuex UltraScale FPGAs.
  */
- #include "fpga/xilinx/bitstream_engine.hpp"
+ #include "unbit/fpga/xilinx/bitstream_engine.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -12,11 +12,25 @@
 #include <iostream>
 #include <vector>
 
-using unbit::xilinx::bitstream_engine;
+using unbit::fpga::xilinx::bitstream_engine;
 
 //------------------------------------------------------------------------------------------
 std::vector<uint32_t> load_binary_data(std::istream& f, bool reverse = true)
 {
+	// Step 0: Skip over leading garbage data until we see the first sync word.
+	uint32_t sync_w = 0;
+
+	while (sync_w != bitstream_engine::FPGA_SYNC_WORD_LE)
+	{
+		std::istream::int_type c = f.get();
+
+		if (f.fail() || (c == std::istream::traits_type::eof()))
+			throw std::ios_base::failure("i/o error while scanning for sync word in raw bitstream.");
+
+		sync_w <<= 8u;
+		sync_w |= (c & 0xFFu);
+	}
+
 	// Step 1: Determine the remaining length in the input stream
 	size_t size;
 	{
@@ -61,6 +75,7 @@ std::vector<uint32_t> load_binary_data(std::istream& f, bool reverse = true)
 	return raw_data;
 }
 
+
 //---------------------------------------------------------------------------------------------------------------------
 namespace
 {
@@ -74,10 +89,9 @@ namespace
 		unbit_analyzer();
 		~unbit_analyzer();
 
-		virtual bool on_config_write(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len) override;
-		virtual bool on_config_read(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len) override;
-		virtual bool on_config_rsvd(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len) override;
-		virtual bool on_config_nop(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len) override;
+		bool on_config_nop(uint32_t reg, word_span_type data) override;
+		bool on_config_write(uint32_t reg, word_span_type data) override;
+		bool on_config_read(uint32_t reg, word_span_type data) override;
 	};
 
 	//-----------------------------------------------------------------------------------------------------------------
@@ -92,40 +106,35 @@ namespace
 	}
 
 	//-----------------------------------------------------------------------------------------------------------------
-	bool unbit_analyzer::on_config_write(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len)
+	bool unbit_analyzer::on_config_write(uint32_t reg, word_span_type data)
 	{
-		std::cout << (slr_offset + cfg_w_offset) << " SLR(" << slr_cfg_index << ") WRITE REG(" << reg << ")" << " LEN=" << len << std::endl;
+		std::cout << " SLR(" << slr_cfg_index << ") WRITE REG(" << reg << ")" << " LEN=" << data.size() << std::endl;
 
 		// For testing: Start a new SLR if we see a RSVD30 write
 		if (reg == 30)
-		{
+		{			
 			slr_cfg_index += 1u;
-			slr_offset += cfg_w_offset;
-			process(data, len, false);
-			slr_offset -= cfg_w_offset;
+
+			std::cout << "---- BEGIN SLR(" << slr_cfg_index << ") ----" << std::endl;			
+			process(data, false);		
+			std::cout << "---- END SLR(" << slr_cfg_index << ") ----" << std::endl;
+
 			slr_cfg_index -= 1u;
 		}
 		return true;
 	}
 
 	//-----------------------------------------------------------------------------------------------------------------
-	bool unbit_analyzer::on_config_read(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len)
+	bool unbit_analyzer::on_config_read(uint32_t reg, word_span_type data)
 	{
-		std::cout <<  (slr_offset + cfg_w_offset) << " SLR(" << slr_cfg_index << ") READ REG(" << reg << ")" << std::endl;
+		std::cout << " SLR(" << slr_cfg_index << ") READ REG(" << reg << ")" << " LEN=" << data.size() << std::endl;
 		return true;
 	}
 
 	//-----------------------------------------------------------------------------------------------------------------
-	bool unbit_analyzer::on_config_rsvd(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len)
+	bool unbit_analyzer::on_config_nop(uint32_t reg, word_span_type data)
 	{
-		std::cout <<  (slr_offset + cfg_w_offset) << " SLR(" << slr_cfg_index << ") RSVD REG(" << reg << ")" << std::endl;
-		return true;
-	}
-
-	//-----------------------------------------------------------------------------------------------------------------
-	bool unbit_analyzer::on_config_nop(std::size_t cfg_w_offset, uint32_t reg, const uint32_t *data, std::size_t len)
-	{
-		// std::cout << "NOP" << std::endl;
+		std::cout << "NOP" << std::endl;
 		return true;
 	}
 }
@@ -145,15 +154,16 @@ int main(int argc, char *argv[])
 		}
 
 		std::ifstream stm(argv[1], std::ios_base::in | std::ios_base::binary);
-		auto input = load_binary_data(stm);
+		const auto input = load_binary_data(stm);
 
-		unbit_analyzer analyzer;
-		
-		std::size_t n_parsed = analyzer.process(input.data(), input.size());
-
-		if (n_parsed != input.size())
+		auto [n_parsed, success] = unbit_analyzer().process(input.begin(), input.end());
+		if (!success)
 		{
 			std::clog << "ERR: parsing stopped early at word offset 0x" << std::hex << n_parsed << " of 0x" << input.size() << std::dec << std::endl;
+		}
+		else
+		{
+			std::clog << "INFO: successfully parsed " << n_parsed << " words (of " << input.size() << " total)" << std::endl;
 		}
 
 		return EXIT_SUCCESS;

@@ -2,8 +2,8 @@
  * @file
  * @brief Infrastructure for Xilinx Virtex UltraScale+ FPGAs
  */
-#include "fpga/old/xilinx/vup.hpp"
-#include "fpga/old/xilinx/bram.hpp"
+#include "unbit/fpga/old/xilinx/vup.hpp"
+#include "unbit/fpga/old/xilinx/bram.hpp"
 
 #include <array>
 

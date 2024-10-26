@@ -2,7 +2,7 @@
  * @file
  * @brief Intel-Hex support library
  */
-#include "ihex/ihex.hpp"
+#include "unbit/ihex/ihex.hpp"
 
 #include <cctype>
 #include <fstream>

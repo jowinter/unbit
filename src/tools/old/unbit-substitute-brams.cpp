@@ -3,9 +3,9 @@
  * @brief Proof-of-concept tool to replace BRAM initialization data in a bitstream.
  */
 
-#include "fpga/old/xilinx/bitstream.hpp"
-#include "fpga/old/xilinx/bram.hpp"
-#include "fpga/old/xilinx/fpga.hpp"
+#include "unbit/fpga/old/xilinx/bitstream.hpp"
+#include "unbit/fpga/old/xilinx/bram.hpp"
+#include "unbit/fpga/old/xilinx/fpga.hpp"
 
 #include <iostream>
 #include <iomanip>

@@ -3,7 +3,7 @@
  * @brief libxml2 C++ wrappers (XML string support)
  */
 #define UNBIT_XML_IMPLEMENTATION 1
-#include "xml/xml.hpp"
+#include "unbit/xml/xml.hpp"
 
 #include <libxml/xmlstring.h>
 

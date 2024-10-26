@@ -3,13 +3,13 @@
  * @brief Proof-of-concept tool to inject a (processor) image into block RAMs of a Xilinx FPGA.
  */
 
-#include "fpga/old/xilinx/bitstream.hpp"
-#include "fpga/old/xilinx/bram.hpp"
-#include "fpga/old/xilinx/mmi.hpp"
-#include "fpga/old/xilinx/fpga.hpp"
+#include "unbit/fpga/old/xilinx/bitstream.hpp"
+#include "unbit/fpga/old/xilinx/bram.hpp"
+#include "unbit/fpga/old/xilinx/mmi.hpp"
+#include "unbit/fpga/old/xilinx/fpga.hpp"
 
-#include "xml/xml.hpp"
-#include "ihex/ihex.hpp"
+#include "unbit/xml/xml.hpp"
+#include "unbit/ihex/ihex.hpp"
 
 #include <iostream>
 

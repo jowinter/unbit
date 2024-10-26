@@ -5,8 +5,8 @@
 #ifndef UNBIT_XILINX_MMI_DETAIL_HPP_
 #define UNBIT_XILINX_MMI_DETAIL_HPP_ 1
 
-#include "fpga/old/xilinx/mmi.hpp"
-#include "xml/xml.hpp"
+#include "unbit/fpga/old/xilinx/mmi.hpp"
+#include "unbit/xml/xml.hpp"
 
 namespace unbit
 {

@@ -2,9 +2,9 @@
  * @file
  * @brief Common infrastructure for Xilinx Virtex-7 series FPGAs (and alike)
  */
-#include "fpga/old/xilinx/fpga.hpp"
-#include "fpga/old/xilinx/zynq7.hpp"
-#include "fpga/old/xilinx/vup.hpp"
+#include "unbit/fpga/old/xilinx/fpga.hpp"
+#include "unbit/fpga/old/xilinx/zynq7.hpp"
+#include "unbit/fpga/old/xilinx/vup.hpp"
 
 namespace unbit
 {

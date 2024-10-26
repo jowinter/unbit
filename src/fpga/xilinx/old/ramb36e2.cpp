@@ -2,8 +2,8 @@
  * @file
  * @brief RAMB36E2 block RAM tile (Virtex UltraScale+)
  */
-#include "fpga/old/xilinx/vup.hpp"
-#include "fpga/old/xilinx/bram.hpp"
+#include "unbit/fpga/old/xilinx/vup.hpp"
+#include "unbit/fpga/old/xilinx/bram.hpp"
 
 namespace unbit
 {

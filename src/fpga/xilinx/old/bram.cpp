@@ -2,8 +2,8 @@
  * @file
  * @brief Common infrastructure for Xilinx 7-Series FPGA block RAM tiles.
  */
-#include "fpga/old/xilinx/bram.hpp"
-#include "fpga/old/xilinx/bitstream.hpp"
+#include "unbit/fpga/old/xilinx/bram.hpp"
+#include "unbit/fpga/old/xilinx/bitstream.hpp"
 
 #include <cassert>
 #include <iostream>

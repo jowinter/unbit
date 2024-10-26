@@ -3,7 +3,7 @@
  * @brief Performs a (virtual) readback of a Xilinx bitstream.
  */
 
-#include "fpga/old/xilinx/bitstream.hpp"
+#include "unbit/fpga/old/xilinx/bitstream.hpp"
 
 #include <iostream>
 #include <iomanip>

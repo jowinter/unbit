@@ -2,8 +2,8 @@
  * @file
  * @brief Bitstream manipulation
  */
-#include "fpga/old/xilinx/bitstream.hpp"
-#include "fpga/old/xilinx/fpga.hpp"
+#include "unbit/fpga/old/xilinx/bitstream.hpp"
+#include "unbit/fpga/old/xilinx/fpga.hpp"
 
 #include <algorithm>
 #include <array>

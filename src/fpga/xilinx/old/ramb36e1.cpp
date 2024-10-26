@@ -2,7 +2,7 @@
  * @file
  * @brief RAMB36E1 block RAM tile.
  */
-#include "fpga/old/xilinx/bram.hpp"
+#include "unbit/fpga/old/xilinx/bram.hpp"
 
 namespace unbit
 {

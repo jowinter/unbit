@@ -3,7 +3,7 @@
  * @brief libxml2 C++ wrappers (init/cleanup guard)
  */
 #define UNBIT_XML_IMPLEMENTATION 1
-#include "xml/xml.hpp"
+#include "unbit/xml/xml.hpp"
 
 namespace unbit
 {
