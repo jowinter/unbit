@@ -17,7 +17,7 @@ using unbit::fpga::xilinx::bitstream_engine;
 //------------------------------------------------------------------------------------------
 std::vector<uint32_t> load_binary_data(std::istream& f, bool reverse = true)
 {
-	// Step 0: Skip over leading garbage data until we see the first sync word.
+	// Step 0: Skip over leading garbage data until we see the first sync word.	
 	uint32_t sync_w = 0;
 
 	while (sync_w != bitstream_engine::FPGA_SYNC_WORD_LE)
@@ -30,6 +30,9 @@ std::vector<uint32_t> load_binary_data(std::istream& f, bool reverse = true)
 		sync_w <<= 8u;
 		sync_w |= (c & 0xFFu);
 	}
+
+	// Rewind to the sync word itself
+	f.seekg(-4, std::ios_base::cur);
 
 	// Step 1: Determine the remaining length in the input stream
 	size_t size;
