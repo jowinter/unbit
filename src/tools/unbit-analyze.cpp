@@ -3,6 +3,8 @@
  * @brief Bitstream analysis tool for Xilinx 7-Series and Virtuex UltraScale FPGAs.
  */
  #include "unbit/fpga/xilinx/bitstream_engine.hpp"
+ #include "unbit/fpga/xilinx/config_engine.hpp"
+ #include "unbit/fpga/xilinx/config_context.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -12,12 +14,14 @@
 #include <iostream>
 #include <vector>
 
+using unbit::fpga::xilinx::config_engine;
+using unbit::fpga::xilinx::config_reg;
 using unbit::fpga::xilinx::bitstream_engine;
 
 //------------------------------------------------------------------------------------------
 std::vector<uint32_t> load_binary_data(std::istream& f, bool reverse = true)
 {
-	// Step 0: Skip over leading garbage data until we see the first sync word.	
+	// Step 0: Skip over leading garbage data until we see the first sync word.
 	uint32_t sync_w = 0;
 
 	while (sync_w != bitstream_engine::FPGA_SYNC_WORD_LE)
@@ -82,7 +86,7 @@ std::vector<uint32_t> load_binary_data(std::istream& f, bool reverse = true)
 //---------------------------------------------------------------------------------------------------------------------
 namespace
 {
-	class unbit_analyzer final : public bitstream_engine
+	class unbit_analyzer final : public config_engine
 	{
 	private:
 		uint32_t slr_cfg_index;
@@ -92,9 +96,11 @@ namespace
 		unbit_analyzer();
 		~unbit_analyzer();
 
-		bool on_config_nop(uint32_t reg, word_span_type data) override;
-		bool on_config_write(uint32_t reg, word_span_type data) override;
-		bool on_config_read(uint32_t reg, word_span_type data) override;
+		bool on_config_nop(config_reg reg, word_span_type data) override;
+		bool on_config_write(config_reg reg, word_span_type data) override;
+		bool on_config_read(config_reg reg, word_span_type data) override;
+
+		void on_config_slr(word_span_type data, uint32_t next_slr_index) override;
 	};
 
 	//-----------------------------------------------------------------------------------------------------------------
@@ -109,36 +115,43 @@ namespace
 	}
 
 	//-----------------------------------------------------------------------------------------------------------------
-	bool unbit_analyzer::on_config_write(uint32_t reg, word_span_type data)
+	bool unbit_analyzer::on_config_write(config_reg reg, word_span_type data)
 	{
-		std::cout << " SLR(" << slr_cfg_index << ") WRITE REG(" << reg << ")" << " LEN=" << data.size() << std::endl;
+		auto& ctx = get_context();
 
-		// For testing: Start a new SLR if we see a RSVD30 write
-		if (reg == 30)
-		{			
-			slr_cfg_index += 1u;
+		std::cout << "SLR(" << ctx.slr_index() << ") WRITE REG(" << reg << ")" << " LEN=" << data.size() << std::endl;
 
-			std::cout << "---- BEGIN SLR(" << slr_cfg_index << ") ----" << std::endl;			
-			process(data, false);		
-			std::cout << "---- END SLR(" << slr_cfg_index << ") ----" << std::endl;
-
-			slr_cfg_index -= 1u;
-		}
-		return true;
+		return config_engine::on_config_write(reg, data);
 	}
 
 	//-----------------------------------------------------------------------------------------------------------------
-	bool unbit_analyzer::on_config_read(uint32_t reg, word_span_type data)
+	bool unbit_analyzer::on_config_read(config_reg reg, word_span_type data)
 	{
-		std::cout << " SLR(" << slr_cfg_index << ") READ REG(" << reg << ")" << " LEN=" << data.size() << std::endl;
-		return true;
+		auto& ctx = get_context();
+
+		std::cout << "SLR(" << ctx.slr_index() << ") READ REG(" << reg << ")" << " LEN=" << data.size() << std::endl;
+
+		return config_engine::on_config_write(reg, data);
 	}
 
 	//-----------------------------------------------------------------------------------------------------------------
-	bool unbit_analyzer::on_config_nop(uint32_t reg, word_span_type data)
+	bool unbit_analyzer::on_config_nop(config_reg reg, word_span_type data)
 	{
-		std::cout << "NOP" << std::endl;
-		return true;
+		// std::cout << "NOP" << std::endl;
+		return config_engine::on_config_nop(reg, data);
+	}
+
+	//-----------------------------------------------------------------------------------------------------------------
+	void unbit_analyzer::on_config_slr(word_span_type data, uint32_t next_slr_index)
+	{
+		auto& ctx = get_context();
+
+		std::cout << "--- ENTER SLR(" << ctx.slr_index() << ") ---" << std::endl;
+		config_engine::on_config_slr(data, next_slr_index);
+
+		std::cout << "IDCODE: " << ctx.idcode().value_or(0u) << std::endl
+			<< "FAR: " << ctx.far() << std::endl;
+		std::cout << "--- LEAVE SLR(" << ctx.slr_index() << ") ---" << std::endl;
 	}
 }
 

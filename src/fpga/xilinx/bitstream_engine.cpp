@@ -3,6 +3,7 @@
  * @brief Common infrastructure for Xilinx FPGAs
  */
 #include "unbit/fpga/xilinx/bitstream_engine.hpp"
+#include "unbit/fpga/xilinx/bitstream_error.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -26,7 +27,7 @@ namespace unbit
 			}
 
 			//------------------------------------------------------------------------------------------
-			bitstream_engine::parser_status_type bitstream_engine::process(word_span_type cfg_data, bool is_synchronized)
+			bitstream_engine::parser_status_type bitstream_engine::process_packets(word_span_type cfg_data, bool is_synchronized)
 			{
 				word_span_iterator pos = cfg_data.begin();
 				bool pkt_valid = true;
@@ -110,7 +111,7 @@ namespace unbit
 				else
 				{
 					// Unhandled (freestanding) packet (e.g. freestanding TYPE-2)
-					return parser_status_type(pos, false);
+					throw bitstream_error("unhandled packet type at current bitstream location");
 				}
 
 				// Expect a TYPE2 packet if word count is zero (e.g. for long FDRI writes)
@@ -119,7 +120,7 @@ namespace unbit
 					if (pos == pkt_data.end())
 					{
 						// Failed to look ahead
-						return parser_status_type(pos, false);
+						throw bitstream_error("unexpected end of bitstream (expected a type2 packet with payload data)");
 					}
 					else
 					{
@@ -141,7 +142,7 @@ namespace unbit
 						else
 						{
 							// Unhandled packet!
-							return parser_status_type(pos, false);
+							throw bitstream_error("unhandled packet type at current bitstream location (expected a type2 packet with payload data)");
 						}
 					}
 				}
@@ -149,8 +150,8 @@ namespace unbit
 				// Capture the data array
 				if ((pkt_data.end() - pos) < word_count)
 				{
-					// Malformed bitstream: Word count overflows stream boundaries.#
-					return parser_status_type(pos, false);
+					// Malformed bitstream: Word count overflows stream boundaries.
+					throw bitstream_error("payload data size exceeds bitstream boundaries");
 				}
 				
 				word_span_type data_span(pos, word_count);
@@ -166,22 +167,22 @@ namespace unbit
 				if (pkt_op == 0b00)
 				{
 					// 0b00 NOOP - Nothing to do
-					success = on_config_nop(pkt_reg, data_span);
+					success = on_config_nop(static_cast<config_reg>(pkt_reg), data_span);
 				}
 				else if (pkt_op == 0b10)
 				{
 					// 0b10 WRITE
-					success = on_config_write(pkt_reg, data_span);
+					success = on_config_write(static_cast<config_reg>(pkt_reg), data_span);
 				}
 				else if (pkt_op == 0b01)
 				{
 					// 0b01 READ
-					success = on_config_read(pkt_reg, data_span);
+					success = on_config_read(static_cast<config_reg>(pkt_reg), data_span);
 				}
 				else
 				{
 					// 0b00 RESERVED (Malformed bitstream; sync packets have been handled above)
-					success = on_config_rsvd(pkt_reg, data_span);
+					success = on_config_rsvd(static_cast<config_reg>(pkt_reg), data_span);
 				}
 
 				// Commit the processed information
@@ -189,28 +190,28 @@ namespace unbit
 			}
 
 			//------------------------------------------------------------------------------------------
-			bool bitstream_engine::on_config_write(uint32_t reg, word_span_type data)
+			bool bitstream_engine::on_config_write(config_reg reg, word_span_type data)
 			{
 				// Discard unhandled packets by default.
 				return true;
 			}
 
 			//------------------------------------------------------------------------------------------
-			bool bitstream_engine::on_config_read(uint32_t reg, word_span_type data)
+			bool bitstream_engine::on_config_read(config_reg reg, word_span_type data)
 			{
 				// Discard unhandled read packets by default
 				return true;
 			}
 
 			//------------------------------------------------------------------------------------------
-			bool bitstream_engine::on_config_nop(uint32_t reg, word_span_type data)
+			bool bitstream_engine::on_config_nop(config_reg reg, word_span_type data)
 			{
 				// Discard NOP packets by default.
 				return true;
 			}
 
 			//------------------------------------------------------------------------------------------
-			bool bitstream_engine::on_config_rsvd(uint32_t reg, word_span_type data)
+			bool bitstream_engine::on_config_rsvd(config_reg reg, word_span_type data)
 			{
 				// Reject reserved packets by default
 				return false;

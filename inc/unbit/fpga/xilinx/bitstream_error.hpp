@@ -5,8 +5,9 @@
 #ifndef UNBIT_XILINX_BITSTREAM_ERROR_HPP_
 #define UNBIT_XILINX_BITSTREAM_ERROR_HPP_ 1
 
-#include <exception>
+#include <stdexcept>
 #include <string>
+#include <optional>
 
 namespace unbit
 {
@@ -14,6 +15,15 @@ namespace unbit
 	{
 		namespace xilinx
 		{
+			/**
+			 * @brief Bitstream processing error.
+			 */
+			class bitstream_error : public std::runtime_error
+			{
+			public:
+				explicit bitstream_error(const std::string& what);
+				explicit bitstream_error(const char *what);
+			};
 		}
 	}
 }
