@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 env:
-    BUILD_TYPE: Release
+    BUILD_TYPE: RelWithDebInfo
 
 jobs:
   build:
@@ -19,8 +19,8 @@ jobs:
       with:
         submodules: true
 
-    - name: Configure (cmake)
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+    - name: Configure (clang)
+      run: cmake --preset clang
 
-    - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+    - name: Build (clang)
+      run: cmake --build --preset clang
