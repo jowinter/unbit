@@ -2,6 +2,15 @@
 # Build the static "libunbit-xilinx7" library (containing all reusable components)
 #
 
+OPTION (UNBIT_ENABLE_MMI "Enable (experimental) support for Xilinx Memory Map Information (MMI) files (requires libxml2)" TRUE)
+
+IF (UNBIT_ENABLE_MMI)
+  # libxml2 support (needed for parsing Xilinx MMI files)
+  IF (NOT LIBXML2_FOUND)
+	  MESSAGE(ERROR "Xilinx Memory Map Information (MMI) support requires libxml2")
+  ENDIF()
+ENDIF()
+
 ADD_LIBRARY(unbit_xilinx_old STATIC
   bitstream.cpp
   bram.cpp

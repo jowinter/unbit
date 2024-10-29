@@ -1,5 +1,7 @@
 LINK_LIBRARIES(unbit_xilinx_old)
 
+INCLUDE_DIRECTORIES(${UNBIT_INCLUDE_DIR})
+
 ADD_EXECUTABLE(unbit-old-dump-bitstream         unbit-dump-bitstream.cpp)
 ADD_EXECUTABLE(unbit-old-dump-brams             unbit-dump-brams.cpp)
 ADD_EXECUTABLE(unbit-old-substitute-brams       unbit-substitute-brams.cpp)
