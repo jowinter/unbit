@@ -3,7 +3,7 @@
  * @brief Common infrastructure for Xilinx Series-7 FPGAs
  */
 #ifndef UNBIT_FPGA_OLD_XILINX_ZYNQ7_HPP_
-#define UNBIT_PGA_OLD_XILINX_ZYNQ7_HPP_ 1
+#define UNBIT_FPGA_OLD_XILINX_ZYNQ7_HPP_ 1
 
 #include "fpga.hpp"
 
@@ -139,6 +139,9 @@ namespace unbit
 				//--------------------------------------------------------------------------------------
 				// XC7Z010
 				//
+				/**
+				 * @brief XC7Z010 FPGA metadata
+				 */
 				struct xc7z010 final
 				{
 					/**
@@ -157,6 +160,9 @@ namespace unbit
 				//--------------------------------------------------------------------------------------
 				// XC7Z015
 				//
+				/**
+				 * @brief XC7Z015 FPGA metadata
+				 */
 				struct xc7z015 final
 				{
 					/**
@@ -175,6 +181,9 @@ namespace unbit
 				//--------------------------------------------------------------------------------------
 				// XC7Z020
 				//
+				/**
+				 * @brief XC7Z020 FPGA meta-data
+				 */
 				struct xc7z020 final
 				{
 					/**

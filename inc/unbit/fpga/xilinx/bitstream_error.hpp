@@ -21,7 +21,18 @@ namespace unbit
 			class bitstream_error : public std::runtime_error
 			{
 			public:
+				/**
+				 * @brief Constructs a new bitstream error with the given error message.
+				 *
+				 * @param[in] what is the error message for the bitstream error object.
+				 */
 				explicit bitstream_error(const std::string& what);
+
+				/**
+				 * @brief Constructs a new bitstream error with the given error message.
+				 *
+				 * @param[in] what is the error message for the bitstream error object.
+				 */
 				explicit bitstream_error(const char *what);
 			};
 		}

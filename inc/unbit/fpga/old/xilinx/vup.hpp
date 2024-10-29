@@ -112,6 +112,9 @@ namespace unbit
 				//--------------------------------------------------------------------------------------
 				// XCVU9P
 				//
+				/**
+				 * @brief XCV9UP FPGA metadata
+				 */
 				struct xcvu9p final
 				{
 					/**

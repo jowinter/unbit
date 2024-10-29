@@ -11,10 +11,20 @@
 
 #if !defined(UNBIT_XML_IMPLEMENTATION) || (UNBIT_XML_IMPLEMENTATION == 0)
 // Provide libxml2 compatible stub definitions (don't include libxml2 headers)
+
+/** @brief Stub definition for libxml2 @c xmlChar type*/
 typedef unsigned char                xmlChar;
+
+/** @brief Stub definition for libxml2 @c xmlDocPtr type*/
 typedef struct _xmlDocType*          xmlDocPtr;
+
+/** @brief Stub definition for libxml2 @c xmlNodePtr type*/
 typedef struct _xmlNodeType*         xmlNodePtr;
+
+/** @brief Stub definition for libxml2 @c xmlXPathContextPtr type*/
 typedef struct _xmlXPathContextType* xmlXPathContextPtr;
+
+/** @brief Stub definition for libxml2 @c xmlXPathObjectPtr type*/
 typedef struct _xmlXPathObjectType*  xmlXPathObjectPtr;
 
 # else
@@ -173,7 +183,7 @@ namespace unbit
 			 * @param[in] name is the name of the attribute to query.
 			 *
 			 * @param[in] def_value is the default value (for empty/missing attributes).
-			 *			 
+			 *
 			 * @return The attribute value (empty/missing attributes are implicitly mapped to
 			 *   the given default value).
 			 *

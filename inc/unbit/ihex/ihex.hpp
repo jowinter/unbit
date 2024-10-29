@@ -56,7 +56,8 @@ namespace unbit
 		/**
 		 * @brief Simulates loading of records from an Intel-Hex file
 		 *
-		 * @param[in] load_callback specifies the callback to be invoked for loading data records.
+		 * @param[in] filename is the filename of the Intel-Hex file to be read.
+		 * @param[in] callback specifies the callback to be invoked for loading data records.
 		 *
 		 * @return The entrypoint indicated in the hex file (if any).
 		 */
@@ -66,6 +67,7 @@ namespace unbit
 		/**
 		 * @brief Simulates loading of records from an Intel-Hex file
 		 *
+		 * @param[in] stm is the input stream with the Intel-Hex file to be read.
 		 * @param[in] load_callback specifies the callback to be invoked for loading data records.
 		 *
 		 * @return The entrypoint indicated in the hex file (if any).
@@ -76,6 +78,7 @@ namespace unbit
 		 * @brief Parses all records from an Intel-Hex file
 		 *
 		 * @param[in] filename specifies the path to to Intel-Hex file to be read.
+		 * @param[in] callback specifies the callback to be invoked for loading data records.
 		 */
 		static void parse(const std::string& filename, const std::function<bool(const record&)>& callback);
 
@@ -83,6 +86,7 @@ namespace unbit
 		 * @brief Parses all records from an Intel-Hex file (given as stream)
 		 *
 		 * @param[in] stm is the input stream with the Intel-Hex file to be read.
+		 * @param[in] callback specifies the callback to be invoked for loading data records.
 		 */
 		static void parse(std::istream& stm, const std::function<bool(const record&)>& callback);
 	};

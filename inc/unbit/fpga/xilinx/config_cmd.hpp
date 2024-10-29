@@ -55,6 +55,13 @@ namespace unbit
 				RSVD31    = 0b11111,
 			};
 
+			/**
+			 * @brief Writes the textual representation of a @c config_cmd value to an output stream.
+			 *
+			 * @param os is the target output stream to write to.
+			 * @param cmd is the @c config_cmd value to be written.
+			 * @return A reference to the @p os output stream.
+			 */
 			std::ostream& operator<<(std::ostream& os, config_cmd cmd);
 		}
 	}

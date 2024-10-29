@@ -82,6 +82,9 @@ namespace unbit
 				*
 				* @param[in] y specifies the Y coordinate of the RAM tile.
 				*
+				* @param[in] num_words specifies the number of words (i.e. the depth) of
+				*   the RAM tile.
+				*
 				* @param[in] data_bits specifies the number of data bits per RAM word.
 				*
 				* @param[in] parity_bits specifies the number of parity bits per RAM word.
@@ -95,7 +98,7 @@ namespace unbit
 				* @param[in] slr specifies the zero-based index of the SLR bitstream of this RAM.
 				*/
 				bram(unsigned x, unsigned y, size_t num_words, size_t data_bits, size_t parity_bits,
-					bram_category categroy, size_t bitstream_offset, unsigned slr);
+					bram_category category, size_t bitstream_offset, unsigned slr);
 
 				/**
 				* @brief Diposes a block RAM descriptor
@@ -173,7 +176,7 @@ namespace unbit
 				* @param[in] inject_parity indicates whether data (false) or parity (true) data shall
 				*  be injected.
 				*
-				* @param[in] data specifies the byte vector to be injected.
+				* @param[in] value specifies the bit valueto be injected.
 				*/
 				void inject_bit(bitstream& bits, size_t offset, bool inject_parity, bool value) const;
 

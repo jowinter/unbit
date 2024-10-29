@@ -198,6 +198,8 @@ namespace unbit
 				* @brief Stores an uncompressed as raw readback data file.
 				*
 				* @param[in] filename specifies the destiation filename (and path).
+				*
+				* @param[in] bs specifies the bitstream to be dumped as readback bitstream.
 				*/
 				static void save_as_readback(const std::string& filename, const bitstream& bs);
 
@@ -208,6 +210,10 @@ namespace unbit
 				*   in [Xilinx UG470; "Bitstream Composition"].
 				*
 				* @param[in] filename specifies the filename of the bitstream to be parsed.
+				*
+				* @param[in] callback specifies the packet handler callback. The callback function is
+				*   invoked for every packet in the stream. The return value of the callback indicates
+				*   whether parsing should continue after the call.
 				*/
 				static void parse(const std::string& filename, std::function<bool(const packet&)> callback);
 
@@ -218,6 +224,10 @@ namespace unbit
 				*   be found in  [Xilinx UG470; "Bitstream Composition"].
 				*
 				* @param[in] stm specifies the input stream containing the bitstream data to parse.
+				*
+				* @param[in] callback specifies the packet handler callback. The callback function is
+				*   invoked for every packet in the stream. The return value of the callback indicates
+				*   whether parsing should continue after the call.
 				*/
 				static void parse(std::istream& stm, std::function<bool(const packet&)> callback);
 
@@ -254,7 +264,7 @@ namespace unbit
 				*   calculate the absolute byte offset of data packets with respect to the enclosing
 				*   file/array.
 				*
-				* @param[in] stream_index indicates the index of the (sub-)bitstream for this parse
+				* @param[in] slr indicates the index of the (sub-)bitstream for this parse
 				*   operation.  This parameter is forwarded verbatimly to the callback.
 				*
 				* @param[in] callback specifies the packet handler callback. The callback function is
@@ -279,7 +289,7 @@ namespace unbit
 				* @param[in] idcode specifies the expected IDCODE value (or 0xFFFFFFFF to indicate that
 				*   the IDCODE value is to be read from the bitstream data).
 				*
-				* @param[in] accept_readback indicates if readback bitstream shall be accepted as
+				* @param[in] readback indicates if readback bitstream shall be accepted as
 				*   input format (in addition to normal config bitstreams).
 				*/
 				bitstream(std::istream& stm, uint32_t idcode = 0xFFFFFFFFu, bool readback = false);
@@ -318,7 +328,7 @@ namespace unbit
 				/**
 				* @brief Gets an SLR information object.
 				*
-				* @param[in] index specifies the zero-based index of the SLR info object.
+				* @param[in] slr_index specifies the zero-based index of the SLR info object.
 				*/
 				inline const slr_info& slr(unsigned slr_index) const
 				{
@@ -400,7 +410,7 @@ namespace unbit
 				*   callback function receives the packet of interest (read-only) and a writeable byte
 				*   iterator pair spanning the packet boundary.
 				*
-				* @note This method internally uses the @ref parser method to scan over the packets in
+				* @note This method internally uses the @ref parse method to scan over the packets in
 				*   the bitstream and in its sub-streams.
 				*/
 				void edit(std::function<void(const packet&,byte_iterator,byte_iterator)> callback);
@@ -416,6 +426,9 @@ namespace unbit
 				* @param[in] bit_offset specifies the offset (in bits) relative to the start of the
 				*   frame data area.  (the method internally handles 32-bit word swaps as needed)
 				*
+				* @param[in] slr_index specifies the index of the (sub-)bitstream (aka. SLR in configuration
+				*   order) to be accessed.
+				*
 				* @return The read-back value of the bit.
 				*/
 				bool read_frame_data_bit(size_t bit_offset, unsigned slr_index) const;
@@ -423,10 +436,13 @@ namespace unbit
 				/**
 				* @brief Writes a bit in the frame data area.
 				*
-				* @param[bit] bit_offset specifies the offset (in bits) relative to the start of the
+				* @param[in] bit_offset specifies the offset (in bits) relative to the start of the
 				*   frame data area.  (the method internally handles 32-bit word swaps as needed)
 				*
 				* @param[in] value the value to write at the given location.
+				*
+				* @param[in] slr_index specifies the index of the (sub-)bitstream (aka. SLR in configuration
+				*   order) to be accessed.
 				*/
 				void write_frame_data_bit(size_t bit_offset, bool value, unsigned slr_index);
 
@@ -450,8 +466,7 @@ namespace unbit
 				/**
 				* @brief Saves this bitstream as raw readback data file.
 				*
-				* @param[in] filename specifies the name (and path) of the readback data file to be
-				*  created
+				* @param[in,out] stm specifies the output stream to save this bitstream to.
 				*/
 				void save_as_readback(std::ostream& stm) const;
 

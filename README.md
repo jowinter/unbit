@@ -1,9 +1,27 @@
-# Xilinx FPGA Bitstream Manipulation Tools for Zynq7 (XC7Z010/015/020) FPGAs
+# ![tiny bug sitting on on IC](./doc/images/tiny_bug_on_ic.png) FPGA Bitstream Manipulation Tools
 ![CMake CI](https://github.com/jowinter/unbit/actions/workflows/c-cpp.yml/badge.svg)
 
-This small project implements tooling to manipulate the content of block RAMs of several
-Xilinx Zynq-7000 FPGAs (XC7Z010/015/020). (Very experimental) support for the
-Virtex UltraScale+ (XCVU9P) FPGA is available.
+This small project implements tooling to inspect and modify bitstreams generated for several
+Xilinx Zynq-7000 FPGAs (XC7Z010/015/020), and (very experimental) Virtex UltraScale+ (XCVU9P)
+FPGAs at very low level.
+
+*NOTE: The `unbit` codebase is currently undergoing a major refactoring to add more flexible
+handling of FPGA, mapping of block RAM data on import/export, and (basic) support for compressed
+bitstreams.*
+
+CMake presets (`CMakePresets.json`) have been added to simplify the overall build process.
+To build the full `unbit` codebase (including the *legacy* tools) the
+following steps can now be used:
+
+```
+$ cmake --preset legacy
+$ cmake --build --preset legacy
+```
+
+Information below this point has not been updated yet (but still applies
+to the *legacy* tools):
+
+------------------------------------------------------------------------------------------------
 
 The tools provided in the `tools/` subdirectory enable various types of manipulation on
 FPGA bitstream (.bit) files and on (binary) FPGA readback data. The following command

@@ -107,6 +107,7 @@ namespace unbit
 				/**
 				 * @brief Handles a write to the command (CMD) register.
 				 *
+				 * @param cmd is the command code of this command write.
 				 * @param data points to the start of paramater data of this write.
 				 */
 				virtual void on_config_cmd(config_cmd cmd, word_span_type data);

@@ -24,7 +24,7 @@ namespace unbit
 				* @brief Endianness of a processor (in an MMI file)
 				*
 				* @note This type can be typedef'd to @c std::endian on newer C++ compilers that provide
-				*   the C++20 @c <bit> header and @c std::endian type.
+				*   the C++20 @c \<bit\> header and @c std::endian type.
 				*/
 				enum class endian
 				{
@@ -104,6 +104,8 @@ namespace unbit
 
 					/**
 					* @brief Reads a single bit.
+					*
+					* @param[in] fpga is the FPGA type for block RAM translation.
 					*
 					* @param[in] bs is the source bit stream.
 					*

@@ -170,6 +170,7 @@ namespace unbit
 				/**
 				 * @brief Construct a new context object.
 				 *
+				 * @param engine is a reference to the parent config_engine object creating the context.
 				 * @param slr_index is the SLR index (configuration order) of the new object.
 				 */
 				config_context(config_engine& engine, uint32_t slr_index);
@@ -246,7 +247,7 @@ namespace unbit
 				/**
 				 * @brief Sets the frame write mode of this context.
 				 *
-				 * @param wmode is the new write mode.
+				 * @param new_mode is the new write mode.
 				 */
 				void set_write_mode(wmode new_mode);
 
