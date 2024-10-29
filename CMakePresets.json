@@ -49,5 +49,23 @@
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         }
+    ],
+    "buildPresets": [
+        {
+            "name": "clang",
+            "configurePreset": "clang"
+        },
+        {
+            "name": "clang-debug",
+            "configurePreset": "clang-debug"
+        },
+        {
+            "name": "gcc",
+            "configurePreset": "gcc"
+        },
+        {
+            "name": "gcc-debug",
+            "configurePreset": "gcc-debug"
+        }
     ]
 }
