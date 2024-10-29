@@ -56,10 +56,6 @@ namespace unbit
 			};
 
 			//------------------------------------------------------------------------------------------
-			
-			const char* to_string(config_reg reg);
-
-			//------------------------------------------------------------------------------------------
 			/**
 			 * @brief Writes the name of an FPGA configuration register to an output stream.
 			 * 

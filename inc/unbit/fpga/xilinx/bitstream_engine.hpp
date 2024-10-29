@@ -56,7 +56,7 @@ namespace unbit
 				/**
 				 * @brief FPGA sync word (little-endian).
 				 */
-				static const uint32_t FPGA_SYNC_WORD_LE = 0xAA995566u;
+				static constexpr uint32_t FPGA_SYNC_WORD_LE = 0xAA995566u;
 
 			protected:
 				/**
