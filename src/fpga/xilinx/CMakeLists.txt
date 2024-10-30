@@ -19,6 +19,7 @@ TARGET_SOURCES(unbit_xilinx
 			${UNBIT_INCLUDE_DIR}/unbit/fpga/xilinx/config_context.hpp
 			${UNBIT_INCLUDE_DIR}/unbit/fpga/xilinx/config_engine.hpp
 			${UNBIT_INCLUDE_DIR}/unbit/fpga/xilinx/config_reg.hpp
+			${UNBIT_INCLUDE_DIR}/unbit/fpga/xilinx/device.hpp
 
 	PRIVATE
 		bitstream_engine.cpp
@@ -27,6 +28,7 @@ TARGET_SOURCES(unbit_xilinx
 		config_context.cpp
 		config_engine.cpp
 		config_reg.cpp
+		device.cpp
 )
 
 INSTALL(
