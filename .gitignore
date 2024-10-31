@@ -5,5 +5,8 @@
 # Visual Studio local files
 /.vs
 
+# Compile commands (or its symlinks)
+/compile_commands.json
+
 # Backup files (e.g. emacs)
 *~
