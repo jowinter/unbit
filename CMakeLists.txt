@@ -4,6 +4,9 @@ PROJECT(unbit VERSION 0.1 LANGUAGES C CXX)
 # Request C++20
 SET(CMAKE_CXX_STANDARD 20)
 
+# Enable export of compilation commands (for clangd and friends)
+SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 OPTION (UNBIT_ENABLE_LEGACY "Enable old (legacy) unbit tooling" FALSE)
 
 FIND_PACKAGE(LibXml2)
